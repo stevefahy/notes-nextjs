@@ -629,9 +629,14 @@ ul p {
 .example_button {
   position: absolute;
   left: 0px;
-  margin-left: 20px;
+  margin-left: 10px;
 }
 
 .task-list-item ~ li {
   list-style: none;
+}
+
+.css-1wuw8dw-MuiBreadcrumbs-separator {
+  margin-left: 2px;
+  margin-right: 2px;
 }

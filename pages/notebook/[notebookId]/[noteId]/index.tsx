@@ -18,6 +18,7 @@ import Fab from "@mui/material/Fab";
 import EditIcon from "@mui/icons-material/Edit";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EggIcon from "@mui/icons-material/Egg";
 
 const EditNote = dynamic(() => import("../../../../components/note/editnote"));
 const ViewNote = dynamic(() => import("../../../../components/note/viewnote"));
@@ -188,6 +189,9 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
   }, [autoSave, dispatch]);
 
   const exampleNote = () => {
+    if (!isMobile) {
+      setIsplitScreen(true);
+    }
     updatedViewTextHandler(WELCOME_NOTE);
   };
 
@@ -304,7 +308,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
             onClick={exampleNote}
             className="example_button"
           >
-            <AddCircleIcon sx={{ mr: 1 }} />
+            <EggIcon sx={{ mr: 0 }} />
             Example
           </Fab>
         )}
