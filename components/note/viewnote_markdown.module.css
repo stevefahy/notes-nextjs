@@ -1,0 +1,7 @@
+.codebox pre {
+  box-shadow: rgba(0, 0, 0, 0.4) 1.95px 1.95px 2.6px;
+}
+
+.codebox_language p {
+  padding-left: 5px;
+}
