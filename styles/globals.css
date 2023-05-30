@@ -636,7 +636,7 @@ ul p {
   list-style: none;
 }
 
-.css-1wuw8dw-MuiBreadcrumbs-separator {
-  margin-left: 2px;
-  margin-right: 2px;
+.MuiBreadcrumbs-separator {
+  margin-left: 2px !important;
+  margin-right: 2px !important;
 }
