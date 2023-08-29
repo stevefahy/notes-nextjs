@@ -8,8 +8,11 @@ First, run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
+# for the dev build
+npm run build
+# for the production build
+npm run start
+# to start the production build
 ```
 
 Open [http://localhost:3003](http://localhost:3003) with your browser to see the result.

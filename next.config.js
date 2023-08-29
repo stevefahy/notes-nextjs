@@ -59,10 +59,10 @@ module.exports = (phase, { defaultConfig }) => {
       ...updatedConfig,
       /* development only config options here */
       env: {
-        mongodb_username: encodeURIComponent("AdminSteve"),
-        mongodb_password: encodeURIComponent("Stevempass@9"),
-        mongodb_url: "127.0.0.1:27017/?authSource=admin",
-        mongodb_database: "notes-dev",
+        mongodb_username: encodeURIComponent(process.env.DB_USERNAME),
+        mongodb_password: encodeURIComponent(process.env.DB_PASSWORD),
+        mongodb_url: process.env.DB_URL,
+        mongodb_database: process.env.DB_NAME,
         NEXTAUTH_URL: process.env.NEXTAUTH_URL_DEV,
         NEXTSCRIPT_URL: process.env.NEXTSCRIPT_URL_DEV,
       },
@@ -73,10 +73,10 @@ module.exports = (phase, { defaultConfig }) => {
     ...updatedConfig,
     /* config options for all phases except development here */
     env: {
-      mongodb_username: encodeURIComponent("AdminSteve"),
-      mongodb_password: encodeURIComponent("Stevempass@9"),
-      mongodb_url: "127.0.0.1:27017/?authSource=admin",
-      mongodb_database: "notes",
+      mongodb_username: encodeURIComponent(process.env.DB_USERNAME),
+      mongodb_password: encodeURIComponent(process.env.DB_PASSWORD),
+      mongodb_url: process.env.DB_URL,
+      mongodb_database: process.env.DB_NAME,
       NEXTAUTH_URL: process.env.NEXTAUTH_URL_PROD,
       NEXTSCRIPT_URL: process.env.NEXTSCRIPT_URL_PROD,
     },
