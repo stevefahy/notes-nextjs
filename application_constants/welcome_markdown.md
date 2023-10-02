@@ -1,4 +1,4 @@
-:::custom{style='{"fontSize": "55px", "color": "#4d0000"}'}
+:::custom{style='{"fontSize": "55px", "color": "#4d0000", "height": "45px", "display": "table-cell", "verticalAlign": "bottom"}'}
 ![Notes {{w:32,h:32}}](/images/edit_maroon.png "Notes Logo")**Notes**
 :::
 
