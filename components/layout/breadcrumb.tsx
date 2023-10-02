@@ -1,4 +1,4 @@
-import { Fragment, useState, useEffect } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import EditIcon from "@mui/icons-material/Edit";
@@ -26,6 +26,7 @@ const Breadcrumb = () => {
 
   const [pageLayout, setPageLayout] = useState<PageType>("other");
   const [notebook, setNotebook] = useState<NotebookType>();
+  const [notebookLoaded, setNotebookLoaded] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<ErrorMessage>();
 
   const resetNotebook = () => {
@@ -71,6 +72,7 @@ const Breadcrumb = () => {
           name: notification_edited.message.notebook_name,
           cover: notification_edited.message.notebook_cover,
         });
+        setNotebookLoaded(true);
       }
     }
   }, [notification_edited]);
@@ -118,6 +120,7 @@ const Breadcrumb = () => {
                   id: value.Notebooks.result._id,
                   cover: value.Notebooks.result.notebook_cover,
                 });
+                setNotebookLoaded(true);
               }
             })
             .catch(function (error: any) {
@@ -162,8 +165,11 @@ const Breadcrumb = () => {
               className={classes.breadcrumbs_inner}
             >
               {/* PROFILE */}
-              {pageLayout === "profile" && notebooks_link && notebooks_link}
-              {pageLayout === "profile" && notebooks_link && (
+              {notebookLoaded &&
+                pageLayout === "profile" &&
+                notebooks_link &&
+                notebooks_link}
+              {notebookLoaded && pageLayout === "profile" && notebooks_link && (
                 <span className={classes.breadcrumb_link}>
                   <Avatar
                     sx={{
@@ -179,29 +185,32 @@ const Breadcrumb = () => {
               )}
 
               {/* NOTEBOOKS */}
-              {pageLayout === "notebook" && notebooks_link}
+              {notebookLoaded && pageLayout === "notebook" && notebooks_link}
 
               {/* NOTEBOOKS / NOTEBOOK */}
-              {pageLayout === "notebooks" && notebooks_title}
-              {pageLayout === "notebook" && notebook && notebook.name && (
-                <span className={classes.breadcrumb_link}>
-                  <span className={classes.breadcrumb_link_icon}>
-                    <StickyNote2OutlinedIcon
-                      sx={{ mr: 0.5, fontSize: "1.7rem" }}
-                      className={`notebook_cover_${notebook?.cover}`}
-                    />
-                  </span>
-                  {notebook.name && (
-                    <span className={classes.breadcrumb_link}>
-                      {notebook.name}
+              {notebookLoaded && pageLayout === "notebooks" && notebooks_title}
+              {notebookLoaded &&
+                pageLayout === "notebook" &&
+                notebook &&
+                notebook.name && (
+                  <span className={classes.breadcrumb_link}>
+                    <span className={classes.breadcrumb_link_icon}>
+                      <StickyNote2OutlinedIcon
+                        sx={{ mr: 0.5, fontSize: "1.7rem" }}
+                        className={`notebook_cover_${notebook?.cover}`}
+                      />
                     </span>
-                  )}
-                </span>
-              )}
+                    {notebook.name && (
+                      <span className={classes.breadcrumb_link}>
+                        {notebook.name}
+                      </span>
+                    )}
+                  </span>
+                )}
 
               {/* NOTEEBOOKS / NOTEBOOK / NOTE */}
-              {pageLayout === "note" && notebooks_link}
-              {pageLayout === "note" && (
+              {notebookLoaded && pageLayout === "note" && notebooks_link}
+              {notebookLoaded && notebook?.name && pageLayout === "note" && (
                 <Link href={`/notebook/${notebook?.id}`}>
                   <span className={classes.breadcrumb_link}>
                     <span className={classes.breadcrumb_link_icon}>
@@ -211,14 +220,14 @@ const Breadcrumb = () => {
                       />
                     </span>
                     <span className={classes.breadcrumb_link_btn}>
-                      {notebook?.name}
+                      {notebookLoaded && notebook?.name}
                     </span>
                   </span>
                 </Link>
               )}
 
               {/* NOTE */}
-              {pageLayout === "note" && (
+              {notebookLoaded && notebook?.name && pageLayout === "note" && (
                 <Typography>
                   <span className={classes.breadcrumb_link}>
                     <NoteOutlinedIcon
@@ -232,7 +241,7 @@ const Breadcrumb = () => {
             </Breadcrumbs>
 
             {/* EDIT NOTEBOOK BUTTON */}
-            {pageLayout === "notebook" && (
+            {notebookLoaded && pageLayout === "notebook" && (
               <div className={classes.breadcrumb_edit_btn}>
                 <Fab
                   size="xsmall"
