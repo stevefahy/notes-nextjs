@@ -15,6 +15,27 @@ npm run start
 # to start the production build
 ```
 
+The server requires two .env configuration files:
+
+.env.development
+```ts
+NEXTAUTH_URL=http://localhost:<port number>/api/auth
+NEXTSCRIPT_URL=http://localhost:<port number>
+DB_USERNAME=<user name>
+DB_PASSWORD=<password>
+DB_URL=127.0.0.1:27017/?authSource=<name>
+DB_NAME=notes-dev
+```
+.env.production
+```ts
+NEXTAUTH_URL=http://localhost:<port number>/api/auth
+NEXTSCRIPT_URL=http://localhost:<port number>
+DB_USERNAME=<user name>
+DB_PASSWORD=<password>
+DB_URL=127.0.0.1:27017/?authSource=<name>
+DB_NAME=notes-prod
+```
+
 Open [http://localhost:3003](http://localhost:3003) with your browser to see the result.
 
 The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
