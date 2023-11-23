@@ -4,7 +4,6 @@ import { useRouter } from "next/router";
 import EditIcon from "@mui/icons-material/Edit";
 import Fab from "@mui/material/Fab";
 import Typography from "@mui/material/Typography";
-import Breadcrumbs from "@mui/material/Breadcrumbs";
 import StickyNote2OutlinedIcon from "@mui/icons-material/StickyNote2Outlined";
 import LibraryBooksOutlinedIcon from "@mui/icons-material/LibraryBooksOutlined";
 import NoteOutlinedIcon from "@mui/icons-material/NoteOutlined";
@@ -160,10 +159,7 @@ const Breadcrumb = () => {
       {pageLayout !== "other" && (
         <div>
           <div role="presentation" className={classes.breadcrumb_container}>
-            <Breadcrumbs
-              aria-label="breadcrumb"
-              className={classes.breadcrumbs_inner}
-            >
+            <div aria-label="breadcrumb" className={classes.breadcrumbs_inner}>
               {/* PROFILE */}
               {notebookLoaded &&
                 pageLayout === "profile" &&
@@ -171,6 +167,7 @@ const Breadcrumb = () => {
                 notebooks_link}
               {notebookLoaded && pageLayout === "profile" && notebooks_link && (
                 <span className={classes.breadcrumb_link}>
+                  <span className={classes.breadcrumb_seperator}>/</span>
                   <Avatar
                     sx={{
                       width: 24,
@@ -195,6 +192,7 @@ const Breadcrumb = () => {
                 notebook.name && (
                   <span className={classes.breadcrumb_link}>
                     <span className={classes.breadcrumb_link_icon}>
+                      <span className={classes.breadcrumb_seperator}>/</span>
                       <StickyNote2OutlinedIcon
                         sx={{ mr: 0.5, fontSize: "1.7rem" }}
                         className={`notebook_cover_${notebook?.cover}`}
@@ -214,6 +212,7 @@ const Breadcrumb = () => {
                 <Link href={`/notebook/${notebook?.id}`}>
                   <span className={classes.breadcrumb_link}>
                     <span className={classes.breadcrumb_link_icon}>
+                      <span className={classes.breadcrumb_seperator}>/</span>
                       <StickyNote2OutlinedIcon
                         sx={{ mr: 0.5, fontSize: "1.7rem" }}
                         className={`notebook_cover_${notebook?.cover}`}
@@ -228,17 +227,20 @@ const Breadcrumb = () => {
 
               {/* NOTE */}
               {notebookLoaded && notebook?.name && pageLayout === "note" && (
-                <Typography>
-                  <span className={classes.breadcrumb_link}>
-                    <NoteOutlinedIcon
-                      sx={{ mr: 0.5 }}
-                      className={classes.note}
-                    />
-                    Note
-                  </span>
-                </Typography>
+                <Fragment>
+                  <span className={classes.breadcrumb_seperator}>/</span>
+                  <Typography>
+                    <span className={classes.breadcrumb_link}>
+                      <NoteOutlinedIcon
+                        sx={{ mr: 0.5 }}
+                        className={classes.note}
+                      />
+                      Note
+                    </span>
+                  </Typography>
+                </Fragment>
               )}
-            </Breadcrumbs>
+            </div>
 
             {/* EDIT NOTEBOOK BUTTON */}
             {notebookLoaded && pageLayout === "notebook" && (
@@ -249,7 +251,11 @@ const Breadcrumb = () => {
                   color="default"
                   onClick={editNotebook}
                 >
-                  <EditIcon sx={{ mr: 0 }} fontSize="small" />
+                  <EditIcon
+                    sx={{ mr: 0 }}
+                    fontSize="small"
+                    className={classes.edit_btn}
+                  />
                 </Fab>
               </div>
             )}

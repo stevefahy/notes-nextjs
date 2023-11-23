@@ -156,13 +156,20 @@ const AuthForm = () => {
                   type="text"
                   id="username"
                   required
+                  autoComplete="name"
                   ref={usernameInputRef}
                 />
               </div>
             )}
             <div className={classes.control}>
               <label htmlFor="email">Your Email</label>
-              <input type="email" id="email" required ref={emailInputRef} />
+              <input
+                type="email"
+                id="email"
+                autoComplete="email"
+                required
+                ref={emailInputRef}
+              />
             </div>
             <div className={classes.control}>
               <label htmlFor="password">Your Password</label>
@@ -170,6 +177,7 @@ const AuthForm = () => {
                 type="password"
                 id="password"
                 required
+                autoComplete="password"
                 ref={passwordInputRef}
               />
             </div>

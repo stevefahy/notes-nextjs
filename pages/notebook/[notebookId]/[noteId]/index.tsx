@@ -284,6 +284,19 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
           </Fab>
         )}
 
+        {viewText.length === 0 && isCreate && (
+          <Fab
+            variant="extended"
+            color="primary"
+            size="medium"
+            onClick={exampleNote}
+            className="example_button"
+          >
+            <EggIcon sx={{ mr: 0 }} />
+            Example
+          </Fab>
+        )}
+
         {!isSplitScreen && (
           <Fab
             variant="extended"
@@ -297,19 +310,6 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
               <EditIcon sx={{ mr: 1 }} />
             )}
             {isView ? "View" : "Edit"}
-          </Fab>
-        )}
-
-        {viewText.length === 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={exampleNote}
-            className="example_button"
-          >
-            <EggIcon sx={{ mr: 0 }} />
-            Example
           </Fab>
         )}
 

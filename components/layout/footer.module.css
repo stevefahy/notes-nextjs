@@ -18,9 +18,7 @@
   align-items: center;
   display: flex;
   flex-direction: row;
-  gap: 20px;
   justify-content: space-evenly;
-  justify-content: center;
   position: relative;
   width: 100%;
 }

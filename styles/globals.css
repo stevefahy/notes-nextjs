@@ -88,6 +88,7 @@ body {
   --size-4a: 1.1rem;
   --size-5: 1.25rem;
   --size-6: 1.5rem;
+  --size-6a: 1.6rem;
   --size-7: 1.7rem;
   --size-8: 2rem;
   --size-16: 4rem;
@@ -101,7 +102,7 @@ body {
   --viewnotethumb-box-min-height: 56;
 
   margin: 0;
-  color: #333333;
+  color: rgb(98, 98, 98);
   font-family: "Helvetica", "Arial", sans-serif;
 }
 
@@ -161,22 +162,22 @@ p {
 
 .notebook_cover_default {
   color: var(--notebook-color-bg-default);
-  font-size: var(--size-7) !important;
+  font-size: var(--size-6a) !important;
 }
 
 .notebook_cover_red {
   color: var(--notebook-color-bg-red);
-  font-size: var(--size-7) !important;
+  font-size: var(--size-6a) !important;
 }
 
 .notebook_cover_blue {
   color: var(--notebook-color-bg-blue);
-  font-size: var(--size-7) !important;
+  font-size: var(--size-6a) !important;
 }
 
 .notebook_cover_green {
   color: var(--notebook-color-bg-green);
-  font-size: var(--size-7) !important;
+  font-size: var(--size-6a) !important;
 }
 
 a {
@@ -644,12 +645,6 @@ ul p {
   display: flex;
 }
 
-.example_button {
-  position: absolute;
-  left: 0px;
-  margin-left: 10px;
-}
-
 .task-list-item ~ li {
   list-style: none;
 }
@@ -657,4 +652,57 @@ ul p {
 .MuiBreadcrumbs-separator {
   margin-left: 2px !important;
   margin-right: 2px !important;
+}
+
+@media only screen and (max-width: 380px) {
+  .material-symbols-outlined {
+    font-size: 20px;
+  }
+
+  .button_icon {
+    margin-right: 4px !important;
+  }
+
+  .icon_text {
+    font-size: 12px;
+  }
+
+  select {
+    font-size: 0.8rem;
+  }
+
+  .control {
+    gap: 5px;
+  }
+
+  .control input {
+    font-size: 0.8rem;
+  }
+
+  button svg.MuiSvgIcon-root {
+    font-size: 1.2rem;
+  }
+
+  button.MuiButtonBase-root {
+    font-size: 12px;
+    padding-left: 14px;
+    padding-right: 14px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+    height: 32px;
+  }
+}
+
+button.MuiButtonBase-root.MuiFab-root {
+  height: 36px !important;
+  padding: 0 18px !important;
+}
+
+button.MuiButtonBase-root.MuiFab-root.MuiFab-circular.MuiFab-sizeXsmall {
+  height: 30px !important;
+  padding: 0px !important;
+}
+
+.more_vert {
+  font-size: 1.5rem !important;
 }

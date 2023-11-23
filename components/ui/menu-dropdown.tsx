@@ -1,7 +1,6 @@
-import { useState, Fragment, useEffect } from "react";
+import { useState, Fragment } from "react";
 import { useRouter } from "next/router";
 import { useSession, signOut } from "next-auth/react";
-
 import Box from "@mui/material/Box";
 import Avatar from "@mui/material/Avatar";
 import Menu from "@mui/material/Menu";
@@ -51,7 +50,7 @@ export default function MenuDropdown() {
             aria-haspopup="true"
             aria-expanded={open ? "true" : undefined}
           >
-            <MoreVertIcon style={{ color: "white" }} />
+            <MoreVertIcon style={{ color: "white" }} className="more_vert" />
           </IconButton>
         </Tooltip>
       </Box>
