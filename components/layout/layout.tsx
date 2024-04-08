@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { Fragment, useEffect, useState } from "react";
 import { Props } from "../../types";
 import { useAppSelector } from "../../store/hooks";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const MainNavigation = dynamic(() => import("./main-navigation"), {});
 const NotificationView = dynamic(() => import("../ui/notification-view"), {});
@@ -69,6 +70,7 @@ const Layout = (props: Props) => {
         />
       )}
       <SnackbarView status={snackbar.status} message={snackbar.message} />
+      <GoogleAnalytics gaId="G-ES95HM1XLD" />
     </Fragment>
   );
 };

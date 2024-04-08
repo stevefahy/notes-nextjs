@@ -17,6 +17,7 @@
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.12.2",
     "@next/bundle-analyzer": "^13.3.1",
+    "@next/third-parties": "^14.1.4",
     "@reduxjs/toolkit": "^1.9.5",
     "bcryptjs": "^2.4.3",
     "cross-env": "^7.0.3",
