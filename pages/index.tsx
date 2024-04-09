@@ -26,7 +26,7 @@ const Home: NextPage = (props) => {
   return (
     <div>
       <Head>
-        <title>Notes</title>
+        <title>Notes NextJS</title>
         <meta name="description" content="Notes app" />
         <link rel="icon" href="/favicon.ico" />
       </Head>

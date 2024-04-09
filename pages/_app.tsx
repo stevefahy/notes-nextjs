@@ -33,7 +33,7 @@ export default function MyApp(props: MyAppProps) {
           <Layout>
             <CacheProvider value={emotionCache}>
               <Head>
-                <title>Notes</title>
+                <title>Notes NextJS</title>
                 <meta
                   name="viewport"
                   content="width=device-width, initial-scale=1, maximum-scale=5"
