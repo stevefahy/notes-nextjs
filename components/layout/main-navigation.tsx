@@ -11,33 +11,33 @@ const Breadcrumb = dynamic(() => import("./breadcrumb"), {});
 const pages = [{ label: "Notebooks", link: "/notebooks" }];
 
 const MainNavigation = () => {
-  return (
-    <Fragment>
-      <div className={classes.header} id="header_height">
-        <div className={classes.header_container}>
-          <div className={classes.logo_container}>
-            <div className={classes.header_title_logo}>
-              <Image
-                src="/images/edit_white.png"
-                alt="Notes logo"
-                width={20}
-                height={20}
-              />
-            </div>
-            <div className={classes.header_title}>Notes NextJS</div>
-          </div>
-          <div className={classes.header_toolbar}>
-            <Toolbar>
-              <Box sx={{ flexGrow: 0 }}>
-                <MenuDropdown />
-              </Box>
-            </Toolbar>
-          </div>
-        </div>
-      </div>
-      <Breadcrumb />
-    </Fragment>
-  );
+	return (
+		<Fragment>
+			<div className={classes.header} id="header_height">
+				<div className={classes.header_container}>
+					<div className={classes.logo_container}>
+						<div className={classes.header_title_logo}>
+							<Image
+								src="/images/edit_white.png"
+								alt="Notes logo"
+								width={20}
+								height={20}
+							/>
+						</div>
+						<div className={classes.header_title}>Notes NextJS</div>
+					</div>
+					<div className={classes.header_toolbar}>
+						<Toolbar>
+							<Box sx={{ flexGrow: 0 }}>
+								<MenuDropdown />
+							</Box>
+						</Toolbar>
+					</div>
+				</div>
+			</div>
+			<Breadcrumb />
+		</Fragment>
+	);
 };
 
 export default MainNavigation;

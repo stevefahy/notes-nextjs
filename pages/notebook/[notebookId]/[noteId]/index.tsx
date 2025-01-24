@@ -1,7 +1,7 @@
 import dynamic from "next/dynamic";
 import { GetServerSideProps, NextPage } from "next";
 import { Fragment, useEffect, useCallback, useState, memo } from "react";
-import Image from "next/dist/client/image";
+import Image from "next/image";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { uiActions } from "../../../../store/ui-slice";
