@@ -1,0 +1,50 @@
+.editnote_box {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 15px;
+  padding-bottom: 15px;
+}
+
+.editting {
+  white-space: pre-wrap;
+}
+
+.editnote_box.hide {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+}
+
+.editnote_box.show {
+  position: inherit;
+  display: block !important;
+}
+
+.editable:empty:before {
+  content: attr(data-placeholder);
+  color: #888888;
+  font-weight: bold;
+}
+
+.viewnote_content.viewer pre code {
+  white-space: pre-line !important;
+}
+
+.viewnote_content.editor pre code {
+  white-space: pre-line !important;
+}
+
+.image {
+  display: inline-block;
+  vertical-align: top;
+}
+
+.image img {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+}

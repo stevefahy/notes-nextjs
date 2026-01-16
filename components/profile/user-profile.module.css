@@ -1,0 +1,9 @@
+.profile {
+  margin: 3rem auto;
+  text-align: center;
+  display: flex;
+  overflow-y: auto;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}

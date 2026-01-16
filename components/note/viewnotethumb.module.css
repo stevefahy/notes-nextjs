@@ -1,0 +1,51 @@
+.edit {
+  background-color: aliceblue;
+  outline: 0px solid transparent;
+}
+
+.box {
+  display: flex;
+  flex-flow: column;
+  max-height: 200px;
+  overflow: hidden;
+}
+
+.box .row {
+  border: 1px dotted grey;
+}
+
+.box .row.header {
+  flex: 0 1 auto;
+}
+
+.box .row.content {
+  flex: 1 1 auto;
+}
+
+.box .row.footer {
+  flex: 0 1 40px;
+}
+
+/* .content {
+  width: 95%;
+  max-width: 60rem;
+  font-size: var(--size-3);
+  line-height: var(--size-8);
+  background-color: var(--color-white-000);
+  border-radius: 6px;
+  padding: var(--size-4);
+} */
+
+/* .content p {
+  color: var(--color-grey-800);
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-block-start: 0rem;
+  margin-block-end: 0rem;
+}
+
+.content .image {
+  margin: var(--size-4) auto;
+  width: 100%;
+  max-width: 600px;
+} */

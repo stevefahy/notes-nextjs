@@ -1,0 +1,39 @@
+.toolbar {
+  gap: 10px;
+}
+
+.header {
+  z-index: 2;
+  background-color: #4d0000;
+}
+
+.header_container {
+  display: flex;
+  align-items: center;
+  padding-left: 20px;
+}
+
+.logo_container {
+  display: flex;
+  align-items: baseline;
+}
+
+.header_toolbar {
+  margin-left: auto;
+}
+
+.header_title {
+  color: #ffffff;
+  font-family: monospace;
+  font-weight: 700;
+  letter-spacing: 0rem;
+  font-size: 2.4rem;
+  padding: 0;
+  margin: 0;
+}
+
+.header_title_logo {
+  margin-right: 5px;
+  width: 20px;
+  height: 20px;
+}

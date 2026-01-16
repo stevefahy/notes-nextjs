@@ -1,0 +1,71 @@
+.notebooks_list {
+  list-style: none;
+  color: white;
+  margin-block-start: 0em;
+  padding-inline-start: 0px;
+  padding-left: 10px;
+  padding-right: 10px;
+}
+
+.notebooks_list li {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.notebooks_list li div:hover {
+  background-color: #f7f7f7;
+}
+
+.notebooks_list li:first-child {
+  padding-top: 10px;
+}
+
+.notebooks_list_left {
+  width: 20px;
+  border-bottom-left-radius: 6px;
+  border-top-left-radius: 6px;
+  border-radius: 6px;
+}
+
+.notebooks_list_right {
+  padding-left: 10px;
+  align-self: center;
+  font-size: var(--size-4a);
+  color: var(--color-grey-600);
+}
+
+.notebooks_list_outer {
+  height: 50px;
+  display: flex;
+}
+
+.cardcontent {
+  display: flex;
+}
+
+.notebooks_list li:first-child {
+  padding-top: 10px;
+}
+
+.notebooks_list_bg {
+  position: relative;
+}
+
+.notebook_default {
+  color: var(--notebook-color-default);
+  background: var(--notebook-color-bg-default);
+}
+
+.tab_default {
+  background: var(--notebook-color-tab-default);
+}
+
+.tab_red {
+  background: var(--notebook-color-tab-red);
+}
+.tab_blue {
+  background: var(--notebook-color-tab-blue);
+}
+.tab_green {
+  background: var(--notebook-color-tab-green);
+}
