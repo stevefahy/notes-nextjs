@@ -24,7 +24,7 @@ const MainNavigation = () => {
 								height={20}
 							/>
 						</div>
-						<div className={classes.header_title}>Notes NextJS</div>
+						<div className={classes.header_title}>Notes</div>
 					</div>
 					<div className={classes.header_toolbar}>
 						<Toolbar>

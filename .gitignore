@@ -28,8 +28,9 @@ yarn-error.log*
 # local env files
 .env*.local
 
-# env files
+# env files (but allow .env.example)
 .env.*
+!.env.example
 
 # vercel
 .vercel
@@ -46,3 +47,6 @@ yarn-error.log*
 
 # OS
 Thumbs.db
+
+# Git
+.git-private/
