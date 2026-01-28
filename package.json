@@ -32,7 +32,7 @@
     "react-dom": "^19.0.0",
     "react-markdown": "^8.0.7",
     "react-redux": "^9.1.2",
-    "react-syntax-highlighter": "^15.5.0",
+    "react-syntax-highlighter": "^16.1.0",
     "rehype-sanitize": "^5.0.1",
     "rehype-slug": "^5.1.0",
     "remark-directive": "^2.0.1",
