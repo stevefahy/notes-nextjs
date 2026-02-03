@@ -47,6 +47,3 @@ yarn-error.log*
 
 # OS
 Thumbs.db
-
-# Git
-.git-private/
