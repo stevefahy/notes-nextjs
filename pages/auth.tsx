@@ -1,29 +1,28 @@
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import { getSession } from "next-auth/react";
-import { useRouter } from "next/router";
 
 const AuthForm = dynamic(() => import("../components/auth/auth-form"), {});
 
 const AuthPage: NextPage = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-  useEffect(() => {
-    getSession().then((session) => {
-      if (session) {
-        router.replace("/notebooks");
-      } else {
-        setIsLoading(false);
-      }
-    });
-  }, [router]);
+  return <AuthForm />;
+};
 
-  if (isLoading) {
-    return <p>Loading...</p>;
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession({ req: context.req });
+
+  if (session) {
+    return {
+      redirect: {
+        destination: "/notebooks",
+        permanent: false,
+      },
+    };
   }
 
-  return <AuthForm />;
+  return {
+    props: {},
+  };
 };
 
 export default AuthPage;

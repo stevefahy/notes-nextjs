@@ -1,12 +1,7 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext",
-      "es2020.string"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext", "es2020.string"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -20,10 +15,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "types": ["react", "react-dom"],
-    "typeRoots": [
-      "./node_modules/@types",
-      "./types"
-    ]
+    "typeRoots": ["./node_modules/@types", "./types"]
   },
   "include": [
     "next-env.d.ts",
@@ -33,7 +25,5 @@
     "**/*.mdx",
     "pages/helper"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

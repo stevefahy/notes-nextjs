@@ -1,28 +1,8 @@
-import type { NextPage } from "next";
+import type { GetServerSideProps, NextPage } from "next";
 import { getSession } from "next-auth/react";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
 
-const Home: NextPage = (props) => {
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
-
-  useEffect(() => {
-    getSession().then((session) => {
-      if (!session) {
-        router.replace("/auth");
-      } else {
-        setIsLoading(false);
-        router.replace("/notebooks");
-      }
-    });
-  }, [router]);
-
-  if (isLoading) {
-    return <p>Loading...</p>;
-  }
-
+const Home: NextPage = () => {
   return (
     <div>
       <Head>
@@ -33,6 +13,26 @@ const Home: NextPage = (props) => {
       <main></main>
     </div>
   );
+};
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession({ req: context.req });
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/auth",
+        permanent: false,
+      },
+    };
+  }
+
+  return {
+    redirect: {
+      destination: "/notebooks",
+      permanent: false,
+    },
+  };
 };
 
 export default Home;
