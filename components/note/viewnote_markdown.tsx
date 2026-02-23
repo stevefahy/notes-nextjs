@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import { SpecialComponents, Components } from "react-markdown/lib/ast-to-react";
 import matter from "gray-matter";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
 import atomDark from "react-syntax-highlighter/dist/cjs/styles/prism/atom-dark";
@@ -549,6 +550,7 @@ const ViewNoteMarkdown = (props: ViewNoteMarkdownProps) => {
       rawSourcePos
       rehypePlugins={[
         [rehypeSlug],
+        rehypeRaw,
         [
           rehypeSanitize,
           {
