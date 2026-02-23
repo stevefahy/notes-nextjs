@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession } from "next-auth/next";
-import { connectToDatabase } from "../../../../lib/db";
+import { getDb } from "../../../../lib/db";
 import { authOptions } from "../[...nextauth]";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -23,12 +23,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   const userEmail = session.user.email;
   const newUsername = req.body.newUsername;
 
-  let client;
   let db;
   try {
-    const dbConnection = await connectToDatabase();
-    client = dbConnection.client;
-    db = dbConnection.db;
+    db = await getDb();
   } catch (error: any) {
     throw new Error(`Could not connect to the database!
         ${error}`);
@@ -40,7 +37,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
 
   if (!user) {
     res.status(404).json({ error: "User not found!" });
-    client.close();
     return;
   }
 
@@ -49,7 +45,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       { email: userEmail },
       { $set: { username: newUsername } }
     );
-    client.close();
     if (result.modifiedCount > 0) {
       res.status(200).json({ message: "User Name updated!" });
     } else {

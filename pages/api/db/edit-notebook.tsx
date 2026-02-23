@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { Db, MongoClient, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "POST") {
@@ -46,12 +46,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       return;
     }
 
-    let client: MongoClient;
     let db: Db;
     try {
-      const dbConnection = await connectToDatabase();
-      client = dbConnection.client;
-      db = dbConnection.db;
+      db = await getDb();
     } catch (error: any) {
       res.status(500).json({ error: `${error}` });
       return;
@@ -95,8 +92,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           .status(400)
           .json({ error: error.message || "An unknown error occured!" });
       }
-    } finally {
-      client.close();
     }
   }
 };

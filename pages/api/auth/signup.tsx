@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { hashPassword } from "../../../lib/auth";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { MongoClient, Db, ObjectId } from "mongodb";
 import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
 import WELCOME_NOTE from "./../../../application_constants/welcome_markdown.md";
@@ -33,12 +33,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     return;
   }
 
-  let client: MongoClient;
   let db: Db;
   try {
-    const dbConnection = await connectToDatabase();
-    client = dbConnection.client;
-    db = dbConnection.db;
+    db = await getDb();
   } catch (error: any) {
     res.status(500).json({ error: `${error}` });
     return;
@@ -57,7 +54,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res
       .status(422)
       .json({ error: APPLICATION_CONSTANTS.SIGNUP_EMAIL_REGISTERED });
-    client.close();
     return;
   }
 
@@ -72,7 +68,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
   } catch (error: any) {
     res.status(422).json({ error: APPLICATION_CONSTANTS.CREATE_USER_ERROR });
-    client.close();
     return;
   }
 
@@ -80,7 +75,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res.status(422).json({
       error: APPLICATION_CONSTANTS.GENERAL_ERROR,
     });
-    client.close();
     return;
   }
 
@@ -104,7 +98,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     res
       .status(422)
       .json({ error: APPLICATION_CONSTANTS.CREATE_NOTEBOOK_ERROR });
-    client.close();
     return;
   }
 
@@ -122,7 +115,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         (result) => {
           if (result === null) {
             res.status(422).json({ error: `Could not create the note!` });
-            client.close();
             return;
           } else {
             res.status(201).json({
@@ -134,14 +126,12 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         (err) => {
           if (err) {
             res.status(422).json({ error: `Could not create the note!` });
-            client.close();
             return;
           }
         }
       );
   } catch (error: any) {
     res.status(422).json({ error: APPLICATION_CONSTANTS.CREATE_NOTE_ERROR });
-    client.close();
     return;
   }
 };

@@ -8,6 +8,9 @@ const withBundleAnalyzer = require("@next/bundle-analyzer")({
 
 const customConfig = withBundleAnalyzer({
   reactStrictMode: false,
+  experimental: {
+    optimizePackageImports: ["@mui/material", "@mui/icons-material"],
+  },
   images: {
     remotePatterns: [
       {

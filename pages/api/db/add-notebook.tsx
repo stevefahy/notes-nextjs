@@ -1,8 +1,8 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { Db, MongoClient, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === "POST") {
@@ -33,12 +33,9 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       return;
     }
 
-    let client: MongoClient;
     let db: Db;
     try {
-      const dbConnection = await connectToDatabase();
-      client = dbConnection.client;
-      db = dbConnection.db;
+      db = await getDb();
     } catch (error: any) {
       res.status(500).json({ error: `${error}` });
       return;
@@ -67,7 +64,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           get_updated = await db
             .collection("notebooks")
             .findOne({ user: userID });
-          client.close();
           if (!get_updated || get_updated === null) {
             throw new Error("Failed to create the Notebook!");
           }
@@ -87,7 +83,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           added: added_notebook,
         });
       } else {
-        client.close();
         throw new Error("Failed to add Notebook!");
       }
     } catch (error) {
@@ -96,7 +91,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
           .status(400)
           .json({ error: error.message || "An unknown error occured!" });
       }
-      client.close();
       return;
     }
   }

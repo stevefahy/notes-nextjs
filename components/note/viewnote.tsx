@@ -6,7 +6,9 @@ import CardContent from "@mui/material/CardContent";
 import classesShared from "./editviewnote_shared.module.css";
 import { NoteEditorView } from "../../types";
 
-const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"));
+const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"), {
+  ssr: false,
+});
 
 const ViewNote = (props: NoteEditorView) => {
   const splitscreen = props.splitScreen;

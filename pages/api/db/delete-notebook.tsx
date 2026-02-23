@@ -1,6 +1,6 @@
-import { Db, MongoClient, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
 
@@ -36,13 +36,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const nID = new ObjectId(notebookID);
     const uID = new ObjectId(userID);
 
-    let client: MongoClient;
     let db: Db;
 
     try {
-      const dbConnection = await connectToDatabase();
-      client = dbConnection.client;
-      db = dbConnection.db;
+      db = await getDb();
     } catch (error: any) {
       res.status(500).json({ error: `${error}` });
       return;
@@ -100,8 +97,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         error: `Could not delete the Notebook!
         ${error}`,
       });
-    } finally {
-      client.close();
     }
   }
 };

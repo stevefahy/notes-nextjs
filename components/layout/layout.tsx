@@ -4,9 +4,15 @@ import { Props } from "../../types";
 import { useAppSelector } from "../../store/hooks";
 import { GoogleAnalytics } from "@next/third-parties/google";
 
-const MainNavigation = dynamic(() => import("./main-navigation"), {});
-const NotificationView = dynamic(() => import("../ui/notification-view"), {});
-const SnackbarView = dynamic(() => import("../ui/snackbar-view"), {});
+const MainNavigation = dynamic(() => import("./main-navigation"), {
+  loading: () => null,
+});
+const NotificationView = dynamic(() => import("../ui/notification-view"), {
+  ssr: false,
+});
+const SnackbarView = dynamic(() => import("../ui/snackbar-view"), {
+  ssr: false,
+});
 
 // Set the CSS variable --jsvh (Javascript Vertical Height)
 // This var is used because on mobile browsers the css: calc(100vh)
@@ -35,14 +41,12 @@ const Layout = (props: Props) => {
   const snackbar = useAppSelector((state) => state.snack.snackbar);
   const [status, setStatus] = useState(null);
 
-  // Set the initial screenHeight
-  setScreenHeight();
-
-  // Set the screenHeight on window resize (includes orientation change)
-  global.window &&
-    window.addEventListener("resize", () => {
-      setScreenHeight();
-    });
+  useEffect(() => {
+    setScreenHeight();
+    const handleResize = () => setScreenHeight();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (notification.status !== null) {

@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { verifyPassword } from "../../../lib/auth";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { User } from "../../../types";
 
 declare module "next-auth" {
@@ -23,12 +23,9 @@ export const authOptions: NextAuthOptions = {
   secret: "LlKq6ZtYbr+hTC073mAmAh9/h2HwMfsFo4hrfCx5mLg=",
   callbacks: {
     async session({ session, user, token }) {
-      let client;
       let db;
       try {
-        const dbConnection = await connectToDatabase();
-        client = dbConnection.client;
-        db = dbConnection.db;
+        db = await getDb();
       } catch (error: any) {
         throw new Error(`Could not connect to the database!
         ${error}`);
@@ -69,12 +66,9 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials, req) {
         // Add logic here to look up the user from the credentials supplied
         // const user = { id: 1, name: "J Smith", email: "jsmith@example.com" };
-        let client;
         let db;
         try {
-          const dbConnection = await connectToDatabase();
-          client = dbConnection.client;
-          db = dbConnection.db;
+          db = await getDb();
         } catch (error: any) {
           throw new Error(`Could not connect to the database!
           ${error}`);
@@ -87,7 +81,6 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!user) {
-          client.close();
           throw new Error(`Email not found!
           Please re-enter your email or sign up.`);
         }
@@ -98,12 +91,9 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValid) {
-          client.close();
           throw new Error(`Incorrect password.
           Please re-enter your password.`);
         }
-
-        client.close();
 
         if (user) {
           // Any object returned will be saved in `user` property of the JWT

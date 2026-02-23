@@ -1,8 +1,8 @@
-import { Db, MongoClient, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { NoteSaved } from "../../../types";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -46,13 +46,10 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const nID = new ObjectId(noteID);
     const uID = new ObjectId(userID);
 
-    let client: MongoClient;
     let db: Db;
 
     try {
-      const dbConnection = await connectToDatabase();
-      client = dbConnection.client;
-      db = dbConnection.db;
+      db = await getDb();
     } catch (error: any) {
       res.status(500).json({ error: `${error}` });
       return;
@@ -157,8 +154,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       res.status(500).json({
         error: `Could not save the note!\n${err.message}`,
       });
-    } finally {
-      client.close();
     }
   }
 };

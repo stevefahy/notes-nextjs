@@ -1,5 +1,5 @@
-import { connectToDatabase } from "./db";
-import { ObjectId, Db, MongoClient } from "mongodb";
+import { getDb } from "./db";
+import { ObjectId, Db } from "mongodb";
 import { Notebook, Notebooks, Notes, NoteDBProps } from "../types";
 
 // DB Helpers are called by pages using getServerSideProps
@@ -25,13 +25,9 @@ export const getNote = async (user_ID: ObjectId, note_ID: string) => {
 	const userID = new ObjectId(user_ID);
 	const noteID = new ObjectId(note_ID);
 
-	let client: MongoClient;
 	let db: Db;
-
 	try {
-		const dbConnection = await connectToDatabase();
-		client = dbConnection.client;
-		db = dbConnection.db;
+		db = await getDb();
 		if (db === undefined) {
 			throw new Error(`Could not connect to the database!`);
 		}
@@ -111,8 +107,6 @@ export const getNote = async (user_ID: ObjectId, note_ID: string) => {
 			},
 			error: `${error}`,
 		};
-	} finally {
-		client.close();
 	}
 };
 
@@ -129,12 +123,9 @@ export const getNotes = async (user_ID: ObjectId, notebook_ID: string) => {
 	const userID = new ObjectId(user_ID);
 	const notebookID = new ObjectId(notebook_ID);
 
-	let client: MongoClient;
 	let db: Db;
 	try {
-		const dbConnection = await connectToDatabase();
-		client = dbConnection.client;
-		db = dbConnection.db;
+		db = await getDb();
 	} catch (error: any) {
 		throw new Error(`Could not connect to the database!
     ${error}`);
@@ -194,8 +185,6 @@ export const getNotes = async (user_ID: ObjectId, notebook_ID: string) => {
 			error: `Could not load the notes!
     ${error}`,
 		};
-	} finally {
-		client.close();
 	}
 };
 
@@ -208,12 +197,9 @@ export const getNotebooks = async (user_ID: ObjectId) => {
 
 	const userID = new ObjectId(user_ID);
 
-	let client: MongoClient;
 	let db: Db;
 	try {
-		const dbConnection = await connectToDatabase();
-		client = dbConnection.client;
-		db = dbConnection.db;
+		db = await getDb();
 	} catch (error: any) {
 		throw new Error(`Could not connect to the database!
     ${error}`);
@@ -275,8 +261,6 @@ export const getNotebooks = async (user_ID: ObjectId) => {
 			error: `Could not load the notebooks!
     ${error}`,
 		};
-	} finally {
-		client.close();
 	}
 };
 
@@ -298,12 +282,9 @@ export const getNotebook = async (
 	const userID = new ObjectId(user_ID);
 	const notebookID = new ObjectId(nbID);
 
-	let client: MongoClient;
 	let db: Db;
 	try {
-		const dbConnection = await connectToDatabase();
-		client = dbConnection.client;
-		db = dbConnection.db;
+		db = await getDb();
 	} catch (error: any) {
 		throw new Error(`Could not connect to the database!
     ${error}`);
@@ -379,7 +360,5 @@ export const getNotebook = async (
 			error: `Could not load the notebook!
     ${error}`,
 		};
-	} finally {
-		client.close();
 	}
 };

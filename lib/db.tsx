@@ -3,22 +3,29 @@ import { Db, MongoClient } from "mongodb";
 const connectionString = `mongodb://${process.env.mongodb_username}:${process.env.mongodb_password}@${process.env.mongodb_url}`;
 const connectionDatabase = `${process.env.mongodb_database}`;
 
+declare global {
+  var _mongoClientPromise: Promise<MongoClient> | undefined;
+}
+
+let clientPromise: Promise<MongoClient>;
+
+if (process.env.NODE_ENV === "development") {
+  if (!global._mongoClientPromise) {
+    global._mongoClientPromise = MongoClient.connect(connectionString);
+  }
+  clientPromise = global._mongoClientPromise;
+} else {
+  clientPromise = MongoClient.connect(connectionString);
+}
+
+export const getDb = async (): Promise<Db> => {
+  const client = await clientPromise;
+  return client.db(connectionDatabase);
+};
+
+/** @deprecated Use getDb() for connection pooling. Kept for backward compatibility during migration. */
 export const connectToDatabase = async () => {
-  let client: MongoClient;
-  let db: Db;
-  try {
-    client = await MongoClient.connect(connectionString);
-  } catch (error) {
-    throw new Error(`Could not connect to the database client!
-     ${error}`);
-  }
-
-  try {
-    db = client.db(connectionDatabase);
-  } catch (error) {
-    throw new Error(`Could not connect to the database collection!
-     ${error}`);
-  }
-
+  const client = await clientPromise;
+  const db = client.db(connectionDatabase);
   return { client, db };
 };

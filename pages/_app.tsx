@@ -13,7 +13,9 @@ import { CacheProvider, EmotionCache } from "@emotion/react";
 import theme from "../utils/theme";
 import createEmotionCache from "../utils/createEmotionCache";
 
-const Layout = dynamic(() => import("../components/layout/layout"), {});
+const Layout = dynamic(() => import("../components/layout/layout"), {
+  loading: () => null,
+});
 
 // Client-side cache, shared for the whole session of the user in the browser.
 const clientSideEmotionCache = createEmotionCache();

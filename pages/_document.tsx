@@ -11,12 +11,14 @@ class myDocument extends Document {
         <Head>
           {/* PWA primary color */}
           <meta name="theme-color" content={theme.palette.primary.main} />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
           <link
             href="https://fonts.googleapis.com/css?family=Permanent+Marker&display=swap"
             rel="stylesheet"
           />
           <link
-            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+            href="https://fonts.googleapis.com/icon?family=Material+Icons&display=swap"
             rel="stylesheet"
           />
           <link
@@ -33,7 +35,7 @@ class myDocument extends Document {
           https://github.com/rehypejs/rehype-sanitize#example-headings-dom-clobbering  */}
           <Script
             src={`${process.env.NEXTSCRIPT_URL}/browser.js`}
-            strategy="beforeInteractive"
+            strategy="lazyOnload"
           />
           <div id="notifications"></div>
         </body>

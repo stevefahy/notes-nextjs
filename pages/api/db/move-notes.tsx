@@ -1,8 +1,8 @@
-import { Db, MongoClient, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
 import { Session, getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]";
-import { connectToDatabase } from "../../../lib/db";
+import { getDb } from "../../../lib/db";
 import { Notebook } from "../../../types";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
@@ -46,7 +46,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const uID = new ObjectId(userID);
     const nbID = new ObjectId(notebookID);
 
-    let client: MongoClient;
     let db: Db;
 
     let objectArray: ObjectId[] = [];
@@ -57,9 +56,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const new_notebook: ObjectId = new ObjectId(notebookID);
 
     try {
-      const dbConnection = await connectToDatabase();
-      client = dbConnection.client;
-      db = dbConnection.db;
+      db = await getDb();
     } catch (error: any) {
       res.status(500).json({ error: `${error}` });
       return;
@@ -201,8 +198,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         error: `Could not move the notes!
         ${error}`,
       });
-    } finally {
-      client.close();
     }
   }
 };

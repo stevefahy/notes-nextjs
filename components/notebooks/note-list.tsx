@@ -26,9 +26,7 @@ const NoteList = (props: NotesDBProps) => {
   const [isChecked, setIsChecked] = useState<CheckedNote[]>([]);
   const [isSelected, setIsSelected] = useState<SelectedNote>();
 
-  const { onNotesSelected } = props;
-  const { onNotesEdit } = props;
-  const { onClearNotesEdit } = props;
+  const { onNotesSelected, onNotesEdit, onClearNotesEdit } = props;
   const props_notes = props.notes;
 
   useEffect(() => {
@@ -41,21 +39,12 @@ const NoteList = (props: NotesDBProps) => {
 
   useEffect(() => {
     if (props_notes) {
-      // Set the initial notes array
-      setNotes((prev) => {
-        let newarray: Note[] = props_notes;
-        return newarray;
-      });
-
-      let newarray: CheckedNote[] = [];
-      props_notes.map((note) => {
-        // Set the checkboxes initial value to false
-        setIsChecked((prev) => {
-          let newnote = { id: note._id, selected: false };
-          newarray.push(newnote);
-          return newarray;
-        });
-      });
+      setNotes(props_notes);
+      const initialChecked: CheckedNote[] = props_notes.map((note) => ({
+        id: note._id,
+        selected: false,
+      }));
+      setIsChecked(initialChecked);
     }
   }, [props_notes]);
 
@@ -67,24 +56,12 @@ const NoteList = (props: NotesDBProps) => {
 
   const updateCheckbox = (checked_id: string, checked: boolean) => {
     setIsChecked((prev) => {
-      // Update the checkbox selected status for each note
-      let newarray: CheckedNote[] = [...prev];
-      const is = isChecked?.findIndex((x) => x.id === checked_id);
-      if (is >= 0 && newarray.length > 0) {
-        newarray[is].selected = checked;
-      }
+      const newarray: CheckedNote[] = prev.map((x) =>
+        x.id === checked_id ? { ...x, selected: checked } : x
+      );
+      const selected = newarray.filter((x) => x.selected).map((x) => x.id);
+      setIsSelected((state) => ({ ...state, selected }));
       return newarray;
-    });
-
-    setIsSelected((state) => {
-      // Replace the selected note array with the currently selected notes
-      let newarray: SelectedNote = { selected: [] };
-      const is = isChecked?.map((x) => {
-        if (x.selected) {
-          newarray.selected.push(x.id);
-        }
-      });
-      return { ...state, selected: newarray.selected };
     });
   };
 
@@ -118,54 +95,56 @@ const NoteList = (props: NotesDBProps) => {
     }
   };
 
+  const renderNote = (note: Note) => (
+    <li key={note._id} className={classes.notebook_list_bg}>
+      <div className={classes.thumb_outer}>
+        <Link
+          className={classes.thumb_outer_link}
+          onClick={NoteLinkHandler}
+          href={`/notebook/${note.notebook}/${note._id}`}
+        >
+          <div className={classes.thumb_outer_link}>
+            <div
+              id={note._id}
+              className={classes.edit_link}
+              onClick={() => EditLinkHandler(note._id)}
+            >
+              <Card
+                sx={{ width: "100%" }}
+                className={classes.note_list_card}
+              >
+                <CardContent className={classes.cardcontent}>
+                  <div className={classes.thumb_image}>
+                    <ViewNoteThumb text={note.note} />
+                  </div>
+                  <div className="date_format date_format_notes">
+                    <DateFormat dateString={note.updatedAt!} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </Link>
+        {onNotesEdit && (
+          <div className={classes.thumb_select}>
+            <input
+              id={`input_${note._id}`}
+              type="checkbox"
+              name="Status"
+              value={note._id}
+              onChange={checkboxStatus}
+            />
+          </div>
+        )}
+      </div>
+    </li>
+  );
+
   return (
     <Fragment>
       {notes && (
         <ul className={classes.notes_list}>
-          {notes.map((note) => (
-            <li key={note._id} className={classes.notebook_list_bg}>
-              <div className={classes.thumb_outer}>
-                <Link
-                  className={classes.thumb_outer_link}
-                  onClick={NoteLinkHandler}
-                  href={`/notebook/${note.notebook}/${note._id}`}
-                >
-                  <div className={classes.thumb_outer_link}>
-                    <div
-                      id={note._id}
-                      className={classes.edit_link}
-                      onClick={() => EditLinkHandler(note._id)}
-                    >
-                      <Card
-                        sx={{ width: "100%" }}
-                        className={classes.note_list_card}
-                      >
-                        <CardContent className={classes.cardcontent}>
-                          <div className={classes.thumb_image}>
-                            <ViewNoteThumb text={note.note} />
-                          </div>
-                          <div className="date_format date_format_notes">
-                            <DateFormat dateString={note.updatedAt!} />
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                </Link>
-                {onNotesEdit && (
-                  <div className={classes.thumb_select}>
-                    <input
-                      id={`input_${note._id}`}
-                      type="checkbox"
-                      name="Status"
-                      value={note._id}
-                      onChange={checkboxStatus}
-                    />
-                  </div>
-                )}
-              </div>
-            </li>
-          ))}
+          {notes.map((note) => renderNote(note))}
         </ul>
       )}
     </Fragment>

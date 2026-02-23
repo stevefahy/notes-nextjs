@@ -611,48 +611,27 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   let notesRequest: UserNotes;
-  try {
-    notesRequest = await getNotes(userID, notebookId);
-  } catch (error: any) {
-    const errorFound: UserNotes = {
-      error: error.message,
-      message: "Error",
-      result: null,
-    };
-    return {
-      props: { notes: errorFound },
-    };
-  }
-
-  // Notebook
-
   let notebookRequest: UserNotebook;
-  try {
-    notebookRequest = await getNotebook(userID, notebookId);
-  } catch (error: any) {
-    const errorFound: UserNotebook = {
-      error: error.message,
-      message: "Error",
-      result: null,
-    };
-    return {
-      props: { notebook: errorFound },
-    };
-  }
-
-  // Notebooks
-
   let notebooksRequest: UserNotebooks;
+
   try {
-    notebooksRequest = await getNotebooks(userID);
+    [notesRequest, notebookRequest, notebooksRequest] = await Promise.all([
+      getNotes(userID, notebookId),
+      getNotebook(userID, notebookId),
+      getNotebooks(userID),
+    ]);
   } catch (error: any) {
-    const errorFound: UserNotebooks = {
+    const errorFound = {
       error: error.message,
       message: "Error",
       result: null,
     };
     return {
-      props: { notebooks: errorFound },
+      props: {
+        notes: { ...errorFound } as UserNotes,
+        notebook: { ...errorFound } as UserNotebook,
+        notebooks: { ...errorFound } as UserNotebooks,
+      },
     };
   }
 

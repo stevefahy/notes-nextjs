@@ -4,7 +4,9 @@ import matter from "gray-matter";
 import { truncateMarkdownPreview } from "../../lib/truncateMarkdownPreview";
 import classes from "./viewnotethumb.module.css";
 
-const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"));
+const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"), {
+  ssr: false,
+});
 
 const ViewNoteThumb = (props: any) => {
   const { content: rawContent } = matter(props.text);
