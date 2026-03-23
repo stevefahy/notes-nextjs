@@ -3,7 +3,7 @@ import { hashPassword } from "../../../lib/auth";
 import { getDb } from "../../../lib/db";
 import { MongoClient, Db, ObjectId } from "mongodb";
 import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
-import WELCOME_NOTE from "./../../../application_constants/welcome_markdown.md";
+import WELCOME_NOTE from "./../../../public/assets/markdown/welcome_markdown_nextjs.md";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {

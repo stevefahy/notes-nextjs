@@ -13,7 +13,7 @@ import classes from "./index.module.css";
 import { initScrollSync } from "../../../../lib/scroll_sync";
 import useWindowDimensions from "../../../../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../../../../application_constants/applicationConstants";
-import WELCOME_NOTE from "../../../../application_constants/welcome_markdown.md";
+import WELCOME_NOTE from "../../../../public/assets/markdown/welcome_markdown_nextjs.md";
 import Fab from "@mui/material/Fab";
 import EditIcon from "@mui/icons-material/Edit";
 import AddCircleIcon from "@mui/icons-material/AddCircle";
@@ -324,7 +324,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
             {isSplitScreen ? (
               <span className="split_screen_icon">
                 <Image
-                  src="/images/split_screen_icon_single.png"
+                  src="/assets/images/split_screen_icon_single.png"
                   alt="split screen icon"
                   width="30"
                   height="30"
@@ -333,7 +333,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
             ) : (
               <span className="split_screen_icon">
                 <Image
-                  src="/images/split_screen_icon_double.png"
+                  src="/assets/images/split_screen_icon_double.png"
                   alt="split screen icon"
                   width="30"
                   height="30"
