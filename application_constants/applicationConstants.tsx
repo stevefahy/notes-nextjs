@@ -1,4 +1,6 @@
 const APPLICATION_CONSTANTS = {
+  FRAMEWORK: "nextjs",
+
   SIGNUP_INVALID_USERNAME: `Invalid Username.
     A minimum of 2 characters are required.`,
   SIGNUP_INVALID_PASSWORD: `Invalid password.

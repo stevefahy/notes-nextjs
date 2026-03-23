@@ -184,7 +184,7 @@ const ViewNoteMarkdown = (props: ViewNoteMarkdownProps) => {
       node.properties.src === undefined ||
       regex.test(node.properties.src) === false
     ) {
-      node.properties.src = "/images/image-not-found-icon.svg";
+      node.properties.src = "/assets/images/image-not-found-icon.svg";
     }
 
     if (node.properties.alt) {

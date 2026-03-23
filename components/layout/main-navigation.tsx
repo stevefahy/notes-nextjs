@@ -18,7 +18,7 @@ const MainNavigation = () => {
 					<div className={classes.logo_container}>
 						<div className={classes.header_title_logo}>
 							<Image
-								src="/images/edit_white.png"
+								src="/assets/images/edit_white.png"
 								alt="Notes logo"
 								width={20}
 								height={20}

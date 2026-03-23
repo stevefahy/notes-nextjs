@@ -488,7 +488,7 @@ blockquote {
 }
 
 blockquote::before {
-  background-image: url(/images/quotes_grey.png);
+  background-image: url(/assets/images/quotes_grey.png);
   position: absolute;
   display: inline-block;
   width: 21px;

@@ -1,4 +1,5 @@
 import { UserNotebook } from "../types";
+import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
 
 export const getNotebookFetch = async (notebookId: string) => {
   const note = { notebookID: notebookId };
@@ -33,7 +34,7 @@ export const createUser = async (
   try {
     response = await fetch("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password, username }),
+      body: JSON.stringify({ email, password, username, framework: APPLICATION_CONSTANTS.FRAMEWORK  }),
       headers: {
         "Content-Type": "application/json",
       },
