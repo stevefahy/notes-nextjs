@@ -50,3 +50,6 @@ Thumbs.db
 
 #Docs
 docs/
+
+.cursor
+.cursor/
