@@ -1,6 +1,11 @@
 const APPLICATION_CONSTANTS = {
   FRAMEWORK: "nextjs",
 
+  MOBILE_LAYOUT_WIDTH: 380,
+  SPLITSCREEN_MINIMUM_WIDTH: 500,
+  VIEWNOTE_PADDING: 69,
+  VIEWNOTE_PADDING_MOBILE: 52,
+
   SIGNUP_INVALID_USERNAME: `Invalid Username.
     A minimum of 2 characters are required.`,
   SIGNUP_INVALID_PASSWORD: `Invalid password.
@@ -36,11 +41,7 @@ const APPLICATION_CONSTANTS = {
     { char: "(p)", display: "℗" },
     { char: ":crush:", display: "🥰" },
     { char: ":tear:", display: "🥲" },
-  ],
-  MOBILE_LAYOUT_WIDTH: 380,
-  SPLITSCREEN_MINIMUM_WIDTH: 500,
-  VIEWNOTE_PADDING: 69,
-  VIEWNOTE_PADDING_MOBILE: 52,
+  ]
 };
 
 export default APPLICATION_CONSTANTS;
