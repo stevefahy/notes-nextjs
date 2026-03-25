@@ -1,6 +1,14 @@
 import dynamic from "next/dynamic";
 import { GetServerSideProps, NextPage } from "next";
-import { Fragment, useEffect, useCallback, useState, memo } from "react";
+import {
+  Fragment,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useState,
+  useRef,
+  memo,
+} from "react";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { snackActions } from "../../../../store/snack-slice";
@@ -9,7 +17,10 @@ import { dispatchErrorSnack } from "../../../../lib/dispatchSnack";
 import { UserNote, NoteEdit, UserNoteDB } from "../../../../types";
 import { getNote } from "../../../../lib/db-helpers";
 import classes from "./index.module.css";
-import { initScrollSync } from "../../../../lib/scroll_sync";
+import {
+  alignNotePanesScroll,
+  initScrollSync,
+} from "../../../../lib/scroll_sync";
 import useWindowDimensions from "../../../../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../../../../application_constants/applicationConstants";
 import WELCOME_NOTE from "../../../../public/assets/markdown/welcome_markdown.md";
@@ -36,13 +47,6 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       setIsMobile(false);
     }
   }, [width, height]);
-
-  useEffect(() => {
-    // Wait for the Markdown to load before initializing scroll sync
-    setTimeout(() => {
-      initScrollSync();
-    }, 500);
-  }, []);
 
   useEffect(() => {
     if (!props.error) return;
@@ -79,6 +83,51 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
   const [isCreate, setIsCreate] = useState(new_note);
   const [originalText, setOriginalText] = useState("");
   const [updateEditTextProp, setUpdateEditTextProp] = useState("");
+
+  const prevIsSplitRef = useRef(isSplitScreen);
+  const splitEnterFromRef = useRef<"edit" | "view" | null>(null);
+
+  const noteShellLayout = isSplitScreen
+    ? "split"
+    : isView
+      ? "view"
+      : "edit";
+
+  useLayoutEffect(() => {
+    if (!prevIsSplitRef.current && isSplitScreen) {
+      splitEnterFromRef.current = isView ? "view" : "edit";
+    }
+    prevIsSplitRef.current = isSplitScreen;
+  }, [isSplitScreen, isView]);
+
+  useLayoutEffect(() => {
+    let raf1 = 0;
+    let raf2 = 0;
+    const splitFrom = splitEnterFromRef.current;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        alignNotePanesScroll(
+          noteShellLayout,
+          isSplitScreen ? splitFrom : null,
+        );
+        if (isSplitScreen) {
+          splitEnterFromRef.current = null;
+        }
+        initScrollSync();
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [noteShellLayout, isSplitScreen]);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      initScrollSync();
+    }, 500);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const creating = noteId === "create-note";
@@ -253,6 +302,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
             isSplitScreen ? " editnote_box_split" : ""
           }`}
           id="view_container"
+          data-note-layout={noteShellLayout}
         >
           <EditNote
             visible={!isView || isSplitScreen}

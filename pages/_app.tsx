@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import "../styles/material-icons-local.css";
 import "../styles/globals.css";
+import "../styles/note-shell.css";
 import "../styles/login-splash.css";
 import type { AppProps } from "next/app";
 import { SessionProvider } from "next-auth/react";

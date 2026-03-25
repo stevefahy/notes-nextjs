@@ -6,11 +6,9 @@ import ViewNoteMarkdown from "./viewnote_markdown";
 
 const ViewNote = (props: NoteEditorView) => {
   const splitscreen = props.splitScreen;
-  const isVisible = props.visible;
 
   const { content } = matter(props.viewText);
   const [contextView, setContextView] = useState("");
-  const [isSplitScreen, setIsSplitScreen] = useState(splitscreen);
   const [isLoaded, setIsLoaded] = useState(false);
 
   const updateViewText = (a: string | ((prev: string) => string)): void => {
@@ -25,17 +23,11 @@ const ViewNote = (props: NoteEditorView) => {
     return () => {};
   }, [content, contextView]);
 
-  useEffect(() => {
-    setIsSplitScreen(splitscreen);
-  }, [splitscreen]);
-
   const viewPaneClassName = [
+    "note-pane",
+    "note-pane--view",
     "view",
     "editnote_box",
-    isSplitScreen && "view_split",
-    isSplitScreen && "show",
-    !isSplitScreen && isVisible && "show",
-    !isSplitScreen && !isVisible && "hide",
   ]
     .filter(Boolean)
     .join(" ");
@@ -43,24 +35,26 @@ const ViewNote = (props: NoteEditorView) => {
   return (
     <Fragment>
       <div id="view" className={viewPaneClassName}>
-        <div className="note-card">
-          <div
-            id="viewnote_id"
-            className="v-card-text cardcontent viewnote_content"
-          >
-            {!isLoaded ? (
-              <SkeletonBlock
-                className="skeleton-view-placeholder"
-                height={50}
-              />
-            ) : (
-              <ViewNoteMarkdown
-                splitScreen={splitscreen}
-                viewText={contextView}
-                updatedViewText={updateViewText}
-                disableLinks={false}
-              />
-            )}
+        <div className="note-pane-scroll">
+          <div className="note-card">
+            <div
+              id="viewnote_id"
+              className="v-card-text cardcontent viewnote_content"
+            >
+              {!isLoaded ? (
+                <SkeletonBlock
+                  className="skeleton-view-placeholder"
+                  height={50}
+                />
+              ) : (
+                <ViewNoteMarkdown
+                  splitScreen={splitscreen}
+                  viewText={contextView}
+                  updatedViewText={updateViewText}
+                  disableLinks={false}
+                />
+              )}
+            </div>
           </div>
         </div>
       </div>

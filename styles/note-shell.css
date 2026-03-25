@@ -1,0 +1,152 @@
+/*
+ * Note shell layout contract (portable HTML/CSS)
+ *
+ * #view_container — set data-note-layout to "edit" | "view" | "split".
+ * Pane roots — keep id="edit" and id="view" for scroll sync and markdown helpers.
+ * Classes — note-pane note-pane--edit | note-pane--view, plus existing edit/view/editnote_box.
+ *
+ * Image flicker (Chromium): Do not put overflow-y: scroll on the same element that
+ * animates opacity/transform. Outer #edit/#view animate; scrolling is only on .note-pane-scroll.
+ * See also: #view_container .note-pane-scroll img { transform: translateZ(0); }
+ */
+
+#view_container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+#view_container[data-note-layout="split"],
+#view_container.editnote_box_split {
+  flex-direction: row;
+}
+
+#view_container[data-note-layout="split"] .note-pane--edit,
+#view_container[data-note-layout="split"] .note-pane--view,
+#view_container.editnote_box_split .note-pane--edit,
+#view_container.editnote_box_split .note-pane--view {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+  transform: none;
+  transition: none;
+}
+
+/* Single-column: one pane fills; the other is off-flow and non-interactive */
+#view_container[data-note-layout="view"] .note-pane--edit {
+  transform: translateX(-6px);
+}
+
+#view_container[data-note-layout="edit"] .note-pane--view {
+  transform: translateX(6px);
+}
+
+#view_container[data-note-layout="edit"] .note-pane--view,
+#view_container[data-note-layout="view"] .note-pane--edit {
+  position: absolute;
+  inset: 0;
+  flex: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: 0;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s linear 0.22s;
+}
+
+#view_container[data-note-layout="edit"] .note-pane--edit,
+#view_container[data-note-layout="view"] .note-pane--view {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  z-index: 1;
+  transform: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease,
+    visibility 0s;
+}
+
+/* Animated outer shell: no vertical scroll here (globals .view/.edit use overflow-y: scroll) */
+#view_container .note-pane--edit.edit,
+#view_container .note-pane--view.view {
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  box-sizing: border-box;
+}
+
+/* Full-bleed scrollbar: strip outer .editnote_box padding; restore on scroll content */
+#view_container .note-pane--edit.edit.editnote_box,
+#view_container .note-pane--view.view.editnote_box {
+  padding: 0 !important;
+}
+
+#view_container .note-pane-scroll {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  box-sizing: border-box;
+}
+
+#view_container .note-pane-scroll > .note-card,
+#view_container .note-pane-scroll > .edit-note {
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  box-sizing: border-box;
+}
+
+#view_container .note-pane-scroll > .note-card {
+  width: 100%;
+  max-width: 100%;
+}
+
+#view_container .note-pane-scroll > .edit-note {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+#view_container .note-pane-scroll .note-card,
+#view_container .note-pane-scroll .v-card-text {
+  min-width: 0;
+  max-width: 100%;
+}
+
+#view_container .note-pane-scroll img {
+  transform: translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #view_container[data-note-layout="edit"] .note-pane--view,
+  #view_container[data-note-layout="view"] .note-pane--edit,
+  #view_container[data-note-layout="edit"] .note-pane--edit,
+  #view_container[data-note-layout="view"] .note-pane--view {
+    transition: none;
+    transform: none;
+  }
+}

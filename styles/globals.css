@@ -565,7 +565,8 @@ ul p {
   margin-top: 10px;
 }
 
-.view_split {
+/* Legacy split width; note page uses #view_container[data-note-layout="split"] flex instead. */
+.view_split:not(.note-pane) {
   float: left;
   width: 50%;
 }
@@ -692,13 +693,14 @@ main.login-page {
   white-space: pre-wrap;
 }
 
-.editnote_box.hide {
+/* Legacy pane toggling — note panes use data-note-layout + styles/note-shell.css */
+.editnote_box.hide:not(.note-pane) {
   position: absolute;
   top: -9999px;
   left: -9999px;
 }
 
-.editnote_box.show {
+.editnote_box.show:not(.note-pane) {
   position: inherit;
   display: block !important;
 }
@@ -894,16 +896,16 @@ li code:not(pre code) {
   min-width: 0;
 }
 
-.view.hide,
-.edit.hide {
+.view.hide:not(.note-pane),
+.edit.hide:not(.note-pane) {
   position: absolute;
   top: -9999px;
   left: -9999px;
   visibility: hidden;
 }
 
-.view.show,
-.edit.show {
+.view.show:not(.note-pane),
+.edit.show:not(.note-pane) {
   position: relative;
   flex: 1;
   min-width: 0;
