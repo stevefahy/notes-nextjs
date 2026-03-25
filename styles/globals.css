@@ -129,7 +129,10 @@ select {
   background-color: #f7f0fa;
 }
 
+/* Note shell: positioned so #edit / #view absolute overlays (inset 0, split slides) size to this box.
+   #view_container intentionally stays static to avoid an extra relayout root that caused horizontal scroll. */
 .page_scrollable_header_breadcrumb_footer {
+  position: relative;
   height: calc(
     var(--jsvh) -
       (var(--header-height) + var(--footer-height) + var(--breadcrumb-height)) *

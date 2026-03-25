@@ -8,13 +8,132 @@
  * Image flicker (Chromium): Do not put overflow-y: scroll on the same element that
  * animates opacity/transform. Outer #edit/#view animate; scrolling is only on .note-pane-scroll.
  * See also: #view_container .note-pane-scroll img { transform: translateZ(0); }
+ *
+ * Motion: optional data-note-transition + .note-shell--scroll-locked (see noteShellDom.ts:
+ * view-edit, edit-view, edit-split, view-split, split-edit, split-view) — CSS @keyframes.
  */
 
+@keyframes note-shell-view-out-right {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(105%);
+  }
+}
+
+@keyframes note-shell-edit-in-from-left {
+  from {
+    transform: translateX(-105%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes note-shell-edit-out-left {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-105%);
+  }
+}
+
+@keyframes note-shell-view-in-from-right {
+  from {
+    transform: translateX(105%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* View → Split: keyframes keep start/end in sync (avoids transition timing bugs). */
+@keyframes note-shell-view-split-edit-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes note-shell-view-split-view-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 50%;
+  }
+}
+
+/* Edit → Split: same idea as view-split — keyframes avoid transition/go timing bugs. */
+@keyframes note-shell-edit-split-edit-shrink {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 50%;
+  }
+}
+
+@keyframes note-shell-edit-split-view-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Split → Edit: view exits right; edit grows 50% → 100% (row forced — single-column would stack). */
+@keyframes note-shell-split-to-edit-expand {
+  from {
+    width: 50%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes note-shell-split-to-edit-view-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Split → View: edit exits left; view grows 50% → 100% anchored to the right (fills leftward). */
+@keyframes note-shell-split-to-view-expand {
+  from {
+    width: 50%;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes note-shell-split-to-view-edit-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+/* Fill the note page wrapper (fixed height via .page_scrollable_header_breadcrumb_footer).
+   Do not use flex: 1 here: as a flex item of main it can steal the overflow chain and break
+   .note-pane-scroll; height: 100% matches globals .view_container and keeps inner scrollers bounded.
+   Avoid position: relative here — it can interact with overflow and produce a horizontal scrollbar on
+   the edit scroller; absolute panes use .page_scrollable_header_breadcrumb_footer as containing block. */
 #view_container {
-  position: relative;
   display: flex;
   flex-direction: column;
-  flex: 1;
+  height: 100%;
   min-height: 0;
   min-width: 0;
 }
@@ -84,6 +203,241 @@
     visibility 0s;
 }
 
+/* --- Scripted cross-fade slides (data-note-transition + lib/noteShellDom.ts) --- */
+
+#view_container[data-note-transition="view-edit"],
+#view_container[data-note-transition="edit-view"] {
+  overflow: hidden;
+}
+
+/* View → Edit: view exits right, edit enters from left */
+#view_container[data-note-layout="edit"][data-note-transition="view-edit"]
+  .note-pane--view,
+#view_container[data-note-layout="edit"][data-note-transition="view-edit"]
+  .note-pane--edit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  opacity: 1;
+  visibility: visible;
+  flex: none !important;
+  transition: none;
+}
+
+#view_container[data-note-layout="edit"][data-note-transition="view-edit"]
+  .note-pane--view {
+  z-index: 1;
+  pointer-events: none;
+  animation: note-shell-view-out-right 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="edit"][data-note-transition="view-edit"]
+  .note-pane--edit {
+  z-index: 2;
+  pointer-events: auto;
+  animation: note-shell-edit-in-from-left 0.38s ease forwards;
+}
+
+/* Edit → View: edit exits left, view enters from right */
+#view_container[data-note-layout="view"][data-note-transition="edit-view"]
+  .note-pane--view,
+#view_container[data-note-layout="view"][data-note-transition="edit-view"]
+  .note-pane--edit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  opacity: 1;
+  visibility: visible;
+  flex: none !important;
+  transition: none;
+}
+
+#view_container[data-note-layout="view"][data-note-transition="edit-view"]
+  .note-pane--edit {
+  z-index: 1;
+  pointer-events: none;
+  animation: note-shell-edit-out-left 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="view"][data-note-transition="edit-view"]
+  .note-pane--view {
+  z-index: 2;
+  pointer-events: auto;
+  animation: note-shell-view-in-from-right 0.38s ease forwards;
+}
+
+/* --- Enter split: edit-split + view-split use @keyframes (see noteShellDom.ts) --- */
+
+#view_container[data-note-transition="edit-split"],
+#view_container[data-note-transition="view-split"] {
+  overflow: hidden;
+}
+
+#view_container[data-note-layout="split"][data-note-transition="edit-split"]
+  .note-pane--edit,
+#view_container[data-note-layout="split"][data-note-transition="edit-split"]
+  .note-pane--view,
+#view_container[data-note-layout="split"][data-note-transition="view-split"]
+  .note-pane--edit,
+#view_container[data-note-layout="split"][data-note-transition="view-split"]
+  .note-pane--view {
+  opacity: 1;
+  visibility: visible;
+  min-height: 0;
+}
+
+/* Edit → Split: edit (left) shrinks 100% → 50%; view (50%) slides in from the right */
+#view_container[data-note-layout="split"][data-note-transition="edit-split"] {
+  justify-content: flex-start;
+}
+
+#view_container[data-note-layout="split"][data-note-transition="edit-split"]
+  .note-pane--edit {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto !important;
+  max-width: none;
+  transform: none;
+  transition: none;
+  animation: note-shell-edit-split-edit-shrink 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="split"][data-note-transition="edit-split"]
+  .note-pane--view {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  flex: none !important;
+  z-index: 2;
+  transition: none;
+  animation: note-shell-edit-split-view-in 0.38s ease forwards;
+}
+
+/* View → Split: edit (50%) slides in from the left; view stays end-aligned while width 100% → 50%. */
+#view_container[data-note-layout="split"][data-note-transition="view-split"] {
+  justify-content: flex-end;
+}
+
+#view_container[data-note-layout="split"][data-note-transition="view-split"]
+  .note-pane--view {
+  position: relative;
+  z-index: 1;
+  flex: 0 0 auto !important;
+  max-width: none;
+  transform: none;
+  transition: none;
+  animation: note-shell-view-split-view-shrink 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="split"][data-note-transition="view-split"]
+  .note-pane--edit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  flex: none !important;
+  z-index: 2;
+  transition: none;
+  animation: note-shell-view-split-edit-in 0.38s ease forwards;
+}
+
+/* --- Leave split → single column (layout is already edit/view; force row for the motion) --- */
+
+#view_container[data-note-transition="split-edit"],
+#view_container[data-note-transition="split-view"] {
+  overflow: hidden;
+}
+
+/* Split → Edit: view slides off right; edit widens to full */
+#view_container[data-note-layout="edit"][data-note-transition="split-edit"] {
+  flex-direction: row !important;
+}
+
+#view_container[data-note-layout="edit"][data-note-transition="split-edit"]
+  .note-pane--edit,
+#view_container[data-note-layout="edit"][data-note-transition="split-edit"]
+  .note-pane--view {
+  opacity: 1;
+  visibility: visible;
+  min-height: 0;
+}
+
+#view_container[data-note-layout="edit"][data-note-transition="split-edit"]
+  .note-pane--edit {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto !important;
+  max-width: none;
+  transform: none;
+  transition: none;
+  pointer-events: auto;
+  animation: note-shell-split-to-edit-expand 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="edit"][data-note-transition="split-edit"]
+  .note-pane--view {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  flex: none !important;
+  z-index: 1;
+  pointer-events: none;
+  transition: none;
+  animation: note-shell-split-to-edit-view-out 0.38s ease forwards;
+}
+
+/* Split → View: edit slides off left; view widens to full from the right */
+#view_container[data-note-layout="view"][data-note-transition="split-view"] {
+  flex-direction: row !important;
+}
+
+#view_container[data-note-layout="view"][data-note-transition="split-view"]
+  .note-pane--edit,
+#view_container[data-note-layout="view"][data-note-transition="split-view"]
+  .note-pane--view {
+  opacity: 1;
+  visibility: visible;
+  min-height: 0;
+}
+
+#view_container[data-note-layout="view"][data-note-transition="split-view"]
+  .note-pane--edit {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 50%;
+  flex: none !important;
+  z-index: 1;
+  pointer-events: none;
+  transition: none;
+  animation: note-shell-split-to-view-edit-out 0.38s ease forwards;
+}
+
+#view_container[data-note-layout="view"][data-note-transition="split-view"]
+  .note-pane--view {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50%;
+  flex: none !important;
+  z-index: 2;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+  animation: note-shell-split-to-view-expand 0.38s ease forwards;
+}
+
 /* Animated outer shell: no vertical scroll here (globals .view/.edit use overflow-y: scroll) */
 #view_container .note-pane--edit.edit,
 #view_container .note-pane--view.view {
@@ -104,9 +458,22 @@
   flex: 1;
   min-height: 0;
   min-width: 0;
-  overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
   box-sizing: border-box;
+}
+
+/* During shell motion (lib/noteShellDom.ts adds .note-shell--scroll-locked), freeze scroll so
+   pane width changes don’t move scrollbars or shift content. */
+#view_container.note-shell--scroll-locked .note-pane-scroll {
+  overflow-y: hidden !important;
+  overscroll-behavior: none;
+}
+
+/* Edit-only: pin scrollport to the pane so flex/% math cannot exceed the column; pairs with wrap rules below. */
+#view_container[data-note-layout="edit"] .note-pane-scroll {
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
 }
 
 #view_container .note-pane-scroll > .note-card,
@@ -137,6 +504,36 @@
   max-width: 100%;
 }
 
+/* pre-wrap alone still lets long tokens/URLs widen the column; wrap them instead of a horizontal bar. */
+#view_container .note-pane-scroll .viewnote_content.editable {
+  overflow-wrap: break-word;
+  word-break: break-word;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Editor article: block formatting context can still grow past the pane without this. */
+#view_container .note-pane-scroll article.viewnote_content.editor {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
+/* Edit layout: allow breaks inside long tokens (URLs, pasted lines) — avoids horizontal scroll with overflow-y:auto. */
+#view_container[data-note-layout="edit"] .note-pane-scroll .viewnote_content.editable,
+#view_container[data-note-layout="edit"] .note-pane-scroll article.viewnote_content.editor {
+  overflow-wrap: anywhere;
+}
+
+#view_container[data-note-layout="edit"] .note-pane-scroll > .edit-note {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 #view_container .note-pane-scroll img {
   transform: translateZ(0);
 }
@@ -148,5 +545,11 @@
   #view_container[data-note-layout="view"] .note-pane--view {
     transition: none;
     transform: none;
+  }
+
+  #view_container[data-note-transition] .note-pane--edit,
+  #view_container[data-note-transition] .note-pane--view {
+    animation: none !important;
+    transition: none !important;
   }
 }
