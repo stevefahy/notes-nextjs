@@ -1,28 +1,43 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+
+export type SnackVariant = "success" | "error" | "warning";
 
 type SliceState = {
   snackbar: {
     status: boolean;
     message: string;
+    variant: SnackVariant;
   };
 };
 
-// First approach: define the initial state using that type
 const initialState: SliceState = {
   snackbar: {
     status: false,
     message: "",
+    variant: "success",
   },
 };
 
 const snackSlice = createSlice({
   name: "snackbar",
-  initialState: initialState,
+  initialState,
   reducers: {
-    showSnack(state, action) {
+    showSnack(
+      state,
+      action: PayloadAction<{
+        message: string;
+        variant?: SnackVariant;
+      }>,
+    ) {
       state.snackbar = {
-        status: action.payload.status,
+        status: true,
         message: action.payload.message,
+        variant: action.payload.variant ?? "success",
+      };
+    },
+    hideSnack(state) {
+      state.snackbar = {
+        ...initialState.snackbar,
       };
     },
   },

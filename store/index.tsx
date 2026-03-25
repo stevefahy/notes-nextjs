@@ -1,12 +1,14 @@
 import { configureStore, Action, ThunkAction } from "@reduxjs/toolkit";
 import uiSlice from "./ui-slice";
 import editSlice from "./edit-slice";
+import editNotesSlice from "./edit-notes-slice";
 import snackSlice from "./snack-slice";
 
 export const store = configureStore({
   reducer: {
     ui: uiSlice.reducer,
     edit: editSlice.reducer,
+    editNotes: editNotesSlice.reducer,
     snack: snackSlice.reducer,
   },
 });

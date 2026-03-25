@@ -1,129 +1,87 @@
-import { Fragment, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import Link from "next/link";
+import { Fragment, useEffect, useMemo, useState, useCallback } from "react";
 import { Notebook, NotebooksDB } from "../../types";
-import classes from "./notebooks-list.module.css";
-import { uiActions } from "../../store/ui-slice";
+import APPLICATION_CONSTANTS from "../../application_constants/applicationConstants";
+import { dispatchErrorSnack } from "../../lib/dispatchSnack";
 import { useAppDispatch } from "../../store/hooks";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import Fab from "@mui/material/Fab";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
+import Footer from "../layout/footer";
+import LoadingScreen from "../ui/loading-screen";
 import { addNotebookFetch } from "../../lib/fetch-helpers";
-import DateFormat from "../ui/date-format";
+import {
+  toLegacyCover,
+  type NotebookCoverType,
+} from "../../lib/folder-options";
+import { sortNotebooksLatestFirst } from "../../lib/sortNotebooks";
+import AddNotebookForm from "./add-notebook-form";
+import NotebookListItem from "./notebook-list-item";
 
-const AddNotebookForm = dynamic(() => import("./add-notebook-form"));
-const Footer = dynamic(() => import("../layout/footer"));
+const AC = APPLICATION_CONSTANTS;
 
 const NotebooksList = (props: NotebooksDB) => {
   const dispatch = useAppDispatch();
+  const { onNotebooksReload } = props;
 
-  const [addNotebook, setAddNotebook] = useState(false);
-  const [notebooks, setNotebooks] = useState<Notebook[] | []>([]);
+  const [enableAddNotebook, setEnableAddNotebook] = useState(false);
+
+  const notebooks = useMemo((): Notebook[] | null => {
+    const payload = props.notebooks;
+    if (!payload) return null;
+    const list = payload.result?.notebooks;
+    if (!list?.length) return list ?? [];
+    return sortNotebooksLatestFirst(list);
+  }, [props.notebooks]);
+
+  const reportError = useCallback(
+    (err: unknown, fromServer?: boolean) => {
+      dispatchErrorSnack(dispatch, err, fromServer);
+    },
+    [dispatch],
+  );
 
   useEffect(() => {
-    if (props.notebooks.result && props.notebooks.result.notebooks) {
-      const noteBooksArray = props.notebooks.result.notebooks;
-      setNotebooks(noteBooksArray);
+    if (props.notebooks?.error) {
+      dispatchErrorSnack(dispatch, props.notebooks.error);
     }
-    if (props.notebooks.error) {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: props.notebooks.error,
-        })
-      );
-    }
-  }, [props.notebooks, dispatch]);
+  }, [props.notebooks?.error, dispatch]);
 
   const addNotebookFormHandler = () => {
-    setAddNotebook(true);
+    setEnableAddNotebook(true);
   };
 
   const cancelHandler = () => {
-    setAddNotebook(false);
-  };
-
-  const errorMessage = (msg: string) => {
-    dispatch(
-      uiActions.showNotification({
-        status: "error",
-        title: "Error!",
-        message: msg,
-      })
-    );
+    setEnableAddNotebook(false);
   };
 
   const addNotebookHandler = async (
     notebook_name: string,
-    notebook_cover: string
-  ) => {
-    try {
-      addNotebookFetch(notebook_name, notebook_cover)
-        .then((response) => {
-          if (!response || !response.success) {
-            errorMessage(`An error occured creating the notebook!`);
-            return;
-          }
-          if (response.success) {
-            let notebook = response.notebook;
-            setNotebooks((prevNotebooks) => [
-              {
-                _id: notebook.id,
-                notebook_name: notebook.name,
-                notebook_cover: notebook.cover,
-                updatedAt: notebook.updatedAt,
-                createdAt: notebook.createdAt,
-              },
-              ...prevNotebooks,
-            ]);
-            setAddNotebook(false);
-          }
-        })
-        .catch(function (error: any) {
-          errorMessage(
-            error.message || `An error occured creating the notebook!`
-          );
-        });
-    } catch (error: any) {
-      errorMessage(error.message || `An error occured creating the notebook!`);
-      return;
+    notebook_cover: NotebookCoverType,
+  ): Promise<boolean> => {
+    const response = await addNotebookFetch(
+      notebook_name,
+      toLegacyCover(notebook_cover),
+    );
+    if (!response?.success) {
+      throw new Error(AC.NOTEBOOK_CREATE_ERROR);
     }
+    setEnableAddNotebook(false);
+    await onNotebooksReload?.();
+    return true;
   };
 
   return (
     <Fragment>
       <div>
-        {!notebooks && <p>Loading...</p>}
-        {notebooks && (
-          <ul className={classes.notebooks_list}>
-            {notebooks.map((note) => (
-              <Link href={`/notebook/${note._id}`} key={note._id}>
-                <li className={`${classes.notebooks_list_bg}`}>
-                  <Card sx={{ width: "100%" }}>
-                    <CardContent className={classes.cardcontent}>
-                      <div className={classes.notebooks_list_outer}>
-                        <div
-                          className={`${classes.notebooks_list_left}  ${
-                            classes["tab_" + note.notebook_cover]
-                          }`}
-                        ></div>
-                        <div className={classes.notebooks_list_right}>
-                          <div>{note.notebook_name}</div>
-                          <div className="date_format">
-                            <DateFormat dateString={note.updatedAt!} />
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </li>
-              </Link>
-            ))}
-          </ul>
+        {notebooks === null && <LoadingScreen />}
+        {notebooks !== null && (
+          <div className="notebooks-list-wrap">
+            <h2 className="page-heading">Your Notebooks</h2>
+            <ul className="notebooks_list">
+              {notebooks.map((notebook) => (
+                <NotebookListItem key={notebook._id} notebook_item={notebook} />
+              ))}
+            </ul>
+          </div>
         )}
-        {addNotebook && (
+        {enableAddNotebook && (
           <AddNotebookForm
             method="create"
             addNotebook={addNotebookHandler}
@@ -132,16 +90,31 @@ const NotebooksList = (props: NotebooksDB) => {
         )}
       </div>
       <Footer>
-        {notebooks && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={addNotebookFormHandler}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Add Notebook
-          </Fab>
+        {notebooks !== null && (
+          <div className="fab-row">
+            <button
+              type="button"
+              className="fab"
+              onClick={addNotebookFormHandler}
+              aria-label="New notebook"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M6 1v10M1 6h10"
+                  stroke="white"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              New Notebook
+            </button>
+          </div>
         )}
       </Footer>
     </Fragment>

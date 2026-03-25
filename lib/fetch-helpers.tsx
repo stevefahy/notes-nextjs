@@ -1,11 +1,13 @@
 import { UserNotebook } from "../types";
 import APPLICATION_CONSTANTS from "../application_constants/applicationConstants";
+import { showErrorMessage, toUserFriendlyError } from "./errorMessageMap";
+
+const AC = APPLICATION_CONSTANTS;
 
 export const getNotebookFetch = async (notebookId: string) => {
   const note = { notebookID: notebookId };
-  let response;
   try {
-    response = await fetch("/api/db/get-notebook", {
+    const response = await fetch("/api/db/get-notebook", {
       method: "POST",
       body: JSON.stringify(note),
       headers: {
@@ -13,28 +15,46 @@ export const getNotebookFetch = async (notebookId: string) => {
       },
     });
     if (!response.ok) {
-      throw new Error("An error occured fetching the notebook!");
+      let serverMsg: string | undefined;
+      try {
+        const errData = (await response.json()) as { error?: string };
+        if (typeof errData?.error === "string") {
+          serverMsg = showErrorMessage(errData.error, true);
+        }
+      } catch {
+        /* empty or non-JSON body */
+      }
+      throw new Error(
+        serverMsg ??
+          (response.status >= 500
+            ? AC.ERROR_SERVER_UNREACHABLE
+            : AC.NOTEBOOK_ERROR),
+      );
     }
     const data = (await response.json()) as UserNotebook;
     if (data.error) {
-      throw new Error("An error occured parsing the notebook!");
+      throw new Error(showErrorMessage(data.error, true));
     }
     return { Notebooks: data };
-  } catch (error: any) {
-    throw new Error(error);
+  } catch (error: unknown) {
+    throw new Error(toUserFriendlyError(error));
   }
 };
 
 export const createUser = async (
   email: string,
   password: string,
-  username: string
+  username: string,
 ) => {
-  let response;
   try {
-    response = await fetch("/api/auth/signup", {
+    const response = await fetch("/api/auth/signup", {
       method: "POST",
-      body: JSON.stringify({ email, password, username, framework: APPLICATION_CONSTANTS.FRAMEWORK  }),
+      body: JSON.stringify({
+        email,
+        password,
+        username,
+        framework: APPLICATION_CONSTANTS.FRAMEWORK,
+      }),
       headers: {
         "Content-Type": "application/json",
       },
@@ -44,26 +64,24 @@ export const createUser = async (
       return data;
     }
     if (!response.ok) {
-      throw new Error("Something went wrong!");
+      throw new Error(AC.CREATE_USER_ERROR);
     }
     return data;
-  } catch (error: any) {
-    throw new Error(error.message);
+  } catch (error: unknown) {
+    throw new Error(toUserFriendlyError(error));
   }
 };
 
 export const addNotebookFetch = async (
   notebook_name: string,
-  notebook_cover: string
+  notebook_cover: string,
 ) => {
   const notebook = {
     notebookName: notebook_name,
     notebookCover: notebook_cover,
   };
 
-  let response;
-  let data;
-
+  let response: Response;
   try {
     response = await fetch("/api/db/add-notebook", {
       method: "POST",
@@ -72,30 +90,36 @@ export const addNotebookFetch = async (
         "Content-Type": "application/json",
       },
     });
-    if (!response || !response.ok) {
-      throw new Error(
-        response.statusText || "An error occured creating the notebook!"
-      );
+    if (!response.ok) {
+      throw new Error(response.statusText || AC.NOTEBOOK_CREATE_ERROR);
     }
-  } catch (error: any) {
-    throw new Error(error.message || `An error occured creating the notebook!`);
+  } catch (error: unknown) {
+    throw new Error(toUserFriendlyError(error));
   }
 
+  let data: {
+    error?: string;
+    acknowledged?: boolean;
+    added?: {
+      _id: string;
+      notebook_name: string;
+      notebook_cover: string;
+      createdAt: string;
+      updatedAt: string;
+    };
+  };
   try {
     data = await response.json();
     if (data.error) {
-      throw new Error(data.error || `Failed to parse notebook!`);
+      throw new Error(showErrorMessage(data.error, true));
     }
-  } catch (error: any) {
-    throw new Error(error.message || `Failed to parse notebook!`);
+  } catch (error: unknown) {
+    throw new Error(toUserFriendlyError(error));
   }
 
-  if (data.error) {
-    throw new Error(data.error || `Failed to parse notebooks!!`);
-  }
-  if (data.acknowledged) {
+  if (data.acknowledged && data.added) {
     return {
-      success: true,
+      success: true as const,
       notebook: {
         id: data.added._id,
         name: data.added.notebook_name,
@@ -105,5 +129,5 @@ export const addNotebookFetch = async (
       },
     };
   }
-  throw new Error(`Unknown error creating notebook!`);
+  throw new Error(AC.NOTEBOOK_CREATE_ERROR);
 };

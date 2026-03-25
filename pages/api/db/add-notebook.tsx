@@ -55,7 +55,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
               updatedAt: new Date(),
             },
           },
-        }
+        },
       );
 
       if (result.modifiedCount > 0) {

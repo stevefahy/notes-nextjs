@@ -1,16 +1,9 @@
 import { GetServerSideProps, NextPage } from "next";
-import dynamic from "next/dynamic";
 import { getSession } from "next-auth/react";
-import { Fragment } from "react";
-
-const UserProfile = dynamic(() => import("../components/profile/user-profile"));
+import UserProfile from "../components/profile/user-profile";
 
 const ProfilePage: NextPage = () => {
-  return (
-    <Fragment>
-      <UserProfile />
-    </Fragment>
-  );
+  return <UserProfile />;
 };
 
 export const getServerSideProps: GetServerSideProps = async (context) => {

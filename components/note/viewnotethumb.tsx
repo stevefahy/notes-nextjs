@@ -1,29 +1,33 @@
-import { memo } from "react";
-import dynamic from "next/dynamic";
-import matter from "gray-matter";
+import { memo, useEffect, useState } from "react";
+import matter from "../../lib/matter";
 import { truncateMarkdownPreview } from "../../lib/truncateMarkdownPreview";
 import classes from "./viewnotethumb.module.css";
+import { SkeletonBlock } from "../ui/skeleton-block";
+import ViewNoteMarkdown from "./viewnote_markdown";
 
-const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"), {
-  ssr: false,
-});
+type ViewNoteThumbProps = { text: string };
 
-const ViewNoteThumb = (props: any) => {
+const ViewNoteThumb = (props: ViewNoteThumbProps) => {
   const { content: rawContent } = matter(props.text);
   const content = truncateMarkdownPreview(rawContent);
 
-  const updateViewText = (a: any) => {
-    props.updatedViewText(a);
-  };
+  const [loaded, setLoaded] = useState(false);
 
-  return (
+  useEffect(() => {
+    const loadedTimer = window.setTimeout(() => {
+      setLoaded(true);
+    }, 600);
+    return () => {
+      clearTimeout(loadedTimer);
+    };
+  }, [content]);
+
+  return !loaded ? (
+    <SkeletonBlock height={15} />
+  ) : (
     <div className={classes.box}>
       <article className="viewnote_content viewnote_thumb">
-        <ViewNoteMarkdown
-          viewText={content}
-          updatedViewText={updateViewText}
-          disableLinks={true}
-        />
+        <ViewNoteMarkdown viewText={content} disableLinks={true} />
       </article>
     </div>
   );

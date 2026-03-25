@@ -1,154 +1,164 @@
-import React, { Fragment, useEffect, useState } from "react";
-import dynamic from "next/dynamic";
+import { useEffect, useState, memo, KeyboardEvent, MouseEvent } from "react";
 import Link from "next/link";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import classes from "./note-list.module.css";
-import { Note, SelectedNote, CheckedNote, NotesDBProps } from "../../types";
+import { NotesDBProps } from "../../types";
 import DateFormat from "../ui/date-format";
+import ViewNoteThumb from "../note/viewnotethumb";
+import { extractNoteTitle, detectNoteTag } from "../../lib/noteCardUtils";
+import { useAppDispatch } from "../../store/hooks";
+import { editNotesActions } from "../../store/edit-notes-slice";
 
-const loading_animation = (
-  <div
-    className={`${classes.thumb_image_loading} ${classes.backgroundAnimated}`}
-  >
-    <div className={classes.viewnotethumb_box}>
-      <article className="viewnote_content viewnote_thumb"></article>
-    </div>
-  </div>
-);
+type NoteTagKind = ReturnType<typeof detectNoteTag>;
 
-const ViewNoteThumb = dynamic(() => import("../note/viewnotethumb"), {
-  loading: () => loading_animation,
-});
+const TAG_CONFIG: Record<NoteTagKind, { classSuffix: string; label: string }> =
+  {
+    todo: { classSuffix: "tag-todo", label: "Todo" },
+    table: { classSuffix: "tag-table", label: "Table" },
+    code: { classSuffix: "tag-code", label: "Code" },
+    image: { classSuffix: "tag-image", label: "Image" },
+    list: { classSuffix: "tag-list", label: "List" },
+    text: { classSuffix: "tag-text", label: "Text" },
+    empty: { classSuffix: "tag-empty", label: "Empty" },
+  };
+
+function NoteTypeTag({ tag }: { tag: NoteTagKind }) {
+  const { classSuffix, label } = TAG_CONFIG[tag];
+  return <span className={`note-tag ${classSuffix}`}>{label}</span>;
+}
 
 const NoteList = (props: NotesDBProps) => {
-  const [notes, setNotes] = useState<Note[] | []>();
-  const [isChecked, setIsChecked] = useState<CheckedNote[]>([]);
-  const [isSelected, setIsSelected] = useState<SelectedNote>();
+  const dispatch = useAppDispatch();
+  const { notes, onNotesSelected, onNotesEdit } = props;
 
-  const { onNotesSelected, onNotesEdit, onClearNotesEdit } = props;
-  const props_notes = props.notes;
+  const [isChecked, setIsChecked] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
-    if (onClearNotesEdit) {
-      setIsSelected((state) => {
-        return { ...state, selected: [] };
-      });
-    }
-  }, [onClearNotesEdit]);
+    const selected = Object.entries(isChecked)
+      .filter(([, v]) => v)
+      .map(([k]) => k);
+    onNotesSelected({ selected });
+    dispatch(
+      editNotesActions.setActiveAndCount({
+        active: !!onNotesEdit,
+        selectedCount: selected.length,
+      }),
+    );
+  }, [isChecked, onNotesSelected, onNotesEdit, dispatch]);
 
-  useEffect(() => {
-    if (props_notes) {
-      setNotes(props_notes);
-      const initialChecked: CheckedNote[] = props_notes.map((note) => ({
-        id: note._id,
-        selected: false,
-      }));
-      setIsChecked(initialChecked);
-    }
-  }, [props_notes]);
-
-  useEffect(() => {
-    if (isSelected) {
-      onNotesSelected(isSelected);
-    }
-  }, [isSelected, onNotesSelected]);
-
-  const updateCheckbox = (checked_id: string, checked: boolean) => {
-    setIsChecked((prev) => {
-      const newarray: CheckedNote[] = prev.map((x) =>
-        x.id === checked_id ? { ...x, selected: checked } : x
-      );
-      const selected = newarray.filter((x) => x.selected).map((x) => x.id);
-      setIsSelected((state) => ({ ...state, selected }));
-      return newarray;
-    });
+  const toggleNote = (noteId: string) => {
+    setIsChecked((prev) => ({ ...prev, [noteId]: !prev[noteId] }));
   };
 
-  const checkboxStatus = (event: React.FormEvent<HTMLInputElement>) => {
-    const target = event.currentTarget;
-    const { checked } = target;
-    const checked_id = target.value;
-    updateCheckbox(checked_id, checked);
-  };
-
-  const divStatus = (id: any) => {
-    const target: HTMLInputElement = document.getElementById(
-      `input_${id}`
-    ) as HTMLInputElement;
-    let { checked } = target;
-    const checked_id = target.value;
-    target.checked = !checked;
-    checked = target.checked;
-    updateCheckbox(checked_id, checked);
-  };
-
-  const NoteLinkHandler = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (onNotesEdit) {
-      event.preventDefault();
+  const handleCardKeydown = (
+    e: KeyboardEvent<HTMLDivElement>,
+    noteId: string,
+  ) => {
+    if (onNotesEdit && (e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      toggleNote(noteId);
     }
   };
 
-  const EditLinkHandler = (noteid: string) => {
-    if (onNotesEdit) {
-      divStatus(noteid);
-    }
+  const handleSelectColClick = (e: MouseEvent, noteId: string) => {
+    e.stopPropagation();
+    toggleNote(noteId);
   };
-
-  const renderNote = (note: Note) => (
-    <li key={note._id} className={classes.notebook_list_bg}>
-      <div className={classes.thumb_outer}>
-        <Link
-          className={classes.thumb_outer_link}
-          onClick={NoteLinkHandler}
-          href={`/notebook/${note.notebook}/${note._id}`}
-        >
-          <div className={classes.thumb_outer_link}>
-            <div
-              id={note._id}
-              className={classes.edit_link}
-              onClick={() => EditLinkHandler(note._id)}
-            >
-              <Card
-                sx={{ width: "100%" }}
-                className={classes.note_list_card}
-              >
-                <CardContent className={classes.cardcontent}>
-                  <div className={classes.thumb_image}>
-                    <ViewNoteThumb text={note.note} />
-                  </div>
-                  <div className="date_format date_format_notes">
-                    <DateFormat dateString={note.updatedAt!} />
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </Link>
-        {onNotesEdit && (
-          <div className={classes.thumb_select}>
-            <input
-              id={`input_${note._id}`}
-              type="checkbox"
-              name="Status"
-              value={note._id}
-              onChange={checkboxStatus}
-            />
-          </div>
-        )}
-      </div>
-    </li>
-  );
 
   return (
-    <Fragment>
-      {notes && (
-        <ul className={classes.notes_list}>
-          {notes.map((note) => renderNote(note))}
-        </ul>
-      )}
-    </Fragment>
+    <div className="notebooks-list-wrap">
+      <h2 className="page-heading">Your Notes</h2>
+      <div className="notes-list-container">
+        {notes && (
+          <ul className="notes_list">
+            {notes.map((note) => {
+              const title = extractNoteTitle(note.note);
+              const tag = detectNoteTag(note.note);
+              const selected = !!isChecked[note._id];
+
+              return (
+                <li key={note._id} className="note-card-outer">
+                  {!onNotesEdit && (
+                    <Link
+                      href={`/notebook/${note.notebook}/${note._id}`}
+                      className="note-card-link-overlay"
+                      aria-label="Open note"
+                    />
+                  )}
+                  <div
+                    className="note-card-link"
+                    role={onNotesEdit ? "button" : undefined}
+                    tabIndex={onNotesEdit ? 0 : undefined}
+                    onClick={
+                      onNotesEdit ? () => toggleNote(note._id) : undefined
+                    }
+                    onKeyDown={
+                      onNotesEdit
+                        ? (e) => handleCardKeydown(e, note._id)
+                        : undefined
+                    }
+                  >
+                    <div
+                      className={`note-card${selected ? " note-card--selected" : ""}`}
+                    >
+                      <div
+                        className={`note-select-col-wrapper${onNotesEdit ? " is-visible" : ""}`}
+                      >
+                        <div
+                          className="note-select-col"
+                          role="checkbox"
+                          tabIndex={onNotesEdit ? 0 : -1}
+                          aria-checked={selected}
+                          onClick={(e) => handleSelectColClick(e, note._id)}
+                          onKeyDown={(e) => {
+                            if (onNotesEdit) handleCardKeydown(e, note._id);
+                          }}
+                        >
+                          <div
+                            className={`sel-circle${selected ? " sel-circle--active" : ""}`}
+                          >
+                            {selected ? (
+                              <svg
+                                width="10"
+                                height="8"
+                                viewBox="0 0 10 8"
+                                fill="none"
+                                aria-hidden
+                              >
+                                <path
+                                  d="M1 4l3 3 5-6"
+                                  stroke="white"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="note-card-body">
+                        <div className="note-title">{title}</div>
+                        <div className="note-thumb-preview">
+                          <ViewNoteThumbMemo text={note.note} />
+                        </div>
+                        <div className="note-foot">
+                          <span className="note-date">
+                            <DateFormat dateString={note.updatedAt ?? ""} />
+                          </span>
+                          <NoteTypeTag tag={tag} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 };
 
-export default NoteList;
+const ViewNoteThumbMemo = memo(ViewNoteThumb);
+export default memo(NoteList);

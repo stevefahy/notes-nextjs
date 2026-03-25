@@ -1,24 +1,18 @@
 import dynamic from "next/dynamic";
 import { GetServerSideProps, NextPage } from "next";
 import { Fragment, useEffect, useCallback, useState, memo } from "react";
-import Image from "next/image";
 import { getSession } from "next-auth/react";
 import { useRouter } from "next/router";
-import { uiActions } from "../../../../store/ui-slice";
 import { snackActions } from "../../../../store/snack-slice";
 import { useAppDispatch } from "../../../../store/hooks";
+import { dispatchErrorSnack } from "../../../../lib/dispatchSnack";
 import { UserNote, NoteEdit, UserNoteDB } from "../../../../types";
 import { getNote } from "../../../../lib/db-helpers";
 import classes from "./index.module.css";
 import { initScrollSync } from "../../../../lib/scroll_sync";
 import useWindowDimensions from "../../../../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../../../../application_constants/applicationConstants";
-import WELCOME_NOTE from "../../../../public/assets/markdown/welcome_markdown_nextjs.md";
-import Fab from "@mui/material/Fab";
-import EditIcon from "@mui/icons-material/Edit";
-import AddCircleIcon from "@mui/icons-material/AddCircle";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EggIcon from "@mui/icons-material/Egg";
+import WELCOME_NOTE from "../../../../public/assets/markdown/welcome_markdown.md";
 
 const EditNote = dynamic(() => import("../../../../components/note/editnote"));
 const ViewNote = dynamic(() => import("../../../../components/note/viewnote"));
@@ -30,7 +24,6 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
 
   const { notebookId, noteId } = router.query;
 
-  let note_loaded: string;
   let new_note = false;
 
   const { width, height } = useWindowDimensions();
@@ -51,25 +44,26 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     }, 500);
   }, []);
 
+  useEffect(() => {
+    if (!props.error) return;
+    dispatchErrorSnack(dispatch, props.error, true);
+  }, [dispatch, props.error]);
+
   const showErrorCallback = useCallback(
-    (error: string) => {
-      dispatch(
-        uiActions.showNotification({
-          status: "error",
-          title: "Error!",
-          message: error,
-        })
-      );
+    (raw: unknown, fromServer: boolean) => {
+      dispatchErrorSnack(dispatch, raw, fromServer);
     },
-    [dispatch]
+    [dispatch],
   );
 
-  if (props.error) {
-    showErrorCallback(props.error);
-    note_loaded = "";
-  } else {
-    note_loaded = props.data.note;
-  }
+  const note_loaded = props.error
+    ? ""
+    : props.data &&
+        typeof props.data === "object" &&
+        props.data !== null &&
+        "note" in props.data
+      ? ((props.data as NoteEdit["data"]).note ?? "")
+      : "";
 
   if (noteId === "create-note") {
     new_note = true;
@@ -79,12 +73,18 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
   const [loadedText, setLoadedText] = useState("");
   const [isChanged, setIsChanged] = useState(false);
   const [autoSave, setAutoSave] = useState(false);
-  const [isView, setIsView] = useState(new_note);
+  const [isView, setIsView] = useState(noteId !== "create-note");
   const [isSplitScreen, setIsplitScreen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isCreate, setIsCreate] = useState(new_note);
   const [originalText, setOriginalText] = useState("");
   const [updateEditTextProp, setUpdateEditTextProp] = useState("");
+
+  useEffect(() => {
+    const creating = noteId === "create-note";
+    setIsCreate(creating);
+    setIsView(!creating);
+  }, [noteId]);
 
   const onRouteChangeStart = useCallback(
     (url: string) => {
@@ -92,7 +92,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
         setAutoSave((prev) => true);
       }
     },
-    [isChanged, isCreate]
+    [isChanged, isCreate],
   );
 
   const toggleEditHandlerCallback = useCallback(() => {
@@ -121,7 +121,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       });
       const data = await response.json();
       if (data.error) {
-        showErrorCallback(data.error);
+        showErrorCallback(data.error, true);
         return;
       }
       if (!response.ok) {
@@ -130,13 +130,13 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       setIsChanged((prev) => false);
       setAutoSave((prev) => false);
       setOriginalText(viewText);
-      // Change to View Mode
-      if (isView) {
+      // Match React: after save, switch to view when coming from edit
+      if (!isView) {
         toggleEditHandlerCallback();
       }
       return data;
-    } catch (error: any) {
-      showErrorCallback(error.message);
+    } catch (error: unknown) {
+      showErrorCallback(error, false);
       return;
     }
   }, [
@@ -181,9 +181,9 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     if (autoSave) {
       dispatch(
         snackActions.showSnack({
-          status: true,
           message: "Note Saved",
-        })
+          variant: "success",
+        }),
       );
     }
   }, [autoSave, dispatch]);
@@ -212,7 +212,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       }
       const data = await response.json();
       if (data.error) {
-        showErrorCallback(data.error);
+        showErrorCallback(data.error, true);
         return;
       }
       setIsCreate(false);
@@ -220,8 +220,8 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       setAutoSave(false);
       router.back();
       return data;
-    } catch (error: any) {
-      showErrorCallback(error.message);
+    } catch (error: unknown) {
+      showErrorCallback(error, false);
       return;
     }
   };
@@ -234,114 +234,189 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     }
   };
 
-  const updatedViewTextHandler = (updatedViewText: string) => {
-    updateIsChanged(updatedViewText);
-    setViewText((prev) => updatedViewText);
-    setUpdateEditTextProp(updatedViewText);
+  const updatedViewTextHandler = (
+    updated: string | ((prev: string) => string),
+  ) => {
+    setViewText((prev) => {
+      const next = typeof updated === "function" ? updated(prev) : updated;
+      updateIsChanged(next);
+      setUpdateEditTextProp(next);
+      return next;
+    });
   };
 
   return (
     <Fragment>
       <div className="page_scrollable_header_breadcrumb_footer">
-        <div className={classes.view_container} id="view_container">
-          <ViewNote
-            visible={!isView}
-            splitScreen={isSplitScreen}
-            viewText={viewText}
-            updatedViewText={updatedViewTextHandler}
-          />
+        <div
+          className={`${classes.view_container}${
+            isSplitScreen ? " editnote_box_split" : ""
+          }`}
+          id="view_container"
+        >
           <EditNote
-            visible={isView}
+            visible={!isView || isSplitScreen}
             splitScreen={isSplitScreen}
             loadedText={loadedText}
             updateViewText={updatedViewTextHandler}
             passUpdatedViewText={updateEditTextProp}
           />
+          <ViewNote
+            visible={isView || isSplitScreen}
+            splitScreen={isSplitScreen}
+            viewText={viewText}
+            updatedViewText={updatedViewTextHandler}
+          />
         </div>
       </div>
       <Footer>
-        {viewText.length > 0 && !isCreate && isChanged && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={saveNoteCallback}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Save Note
-          </Fab>
-        )}
-
-        {viewText.length > 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={createNote}
-          >
-            <AddCircleIcon sx={{ mr: 1 }} />
-            Create Note
-          </Fab>
-        )}
-
-        {viewText.length === 0 && isCreate && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={exampleNote}
-            className="example_button"
-          >
-            <EggIcon sx={{ mr: 0 }} />
-            Example
-          </Fab>
-        )}
-
-        {!isSplitScreen && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={toggleEditHandlerCallback}
-          >
-            {isView ? (
-              <VisibilityIcon sx={{ mr: 1 }} />
-            ) : (
-              <EditIcon sx={{ mr: 1 }} />
-            )}
-            {isView ? "View" : "Edit"}
-          </Fab>
-        )}
-
-        {!isMobile && (
-          <Fab
-            variant="extended"
-            color="primary"
-            size="medium"
-            onClick={toggleSplitHandlerCallback}
-            className="split_screen_button"
-          >
-            {isSplitScreen ? (
-              <span className="split_screen_icon">
-                <Image
-                  src="/assets/images/split_screen_icon_single.png"
-                  alt="split screen icon"
-                  width="30"
-                  height="30"
+        <div className="nb-footer-row">
+          {viewText.length > 0 && !isCreate && isChanged ? (
+            <button
+              type="button"
+              className="btn-action-primary"
+              onClick={saveNoteCallback}
+            >
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              Save Note
+            </button>
+          ) : null}
+          {viewText.length > 0 && isCreate ? (
+            <button
+              type="button"
+              className="btn-action-primary"
+              onClick={() => void createNote()}
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 12 12"
+                fill="none"
+                aria-hidden
+              >
+                <path
+                  d="M6 1v10M1 6h10"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
                 />
+              </svg>
+              Create Note
+            </button>
+          ) : null}
+          {viewText.length === 0 && isCreate ? (
+            <button
+              type="button"
+              className="btn-action-ghost example_button"
+              onClick={exampleNote}
+            >
+              <span className="material-symbols-outlined" aria-hidden>
+                egg
               </span>
-            ) : (
-              <span className="split_screen_icon">
-                <Image
-                  src="/assets/images/split_screen_icon_double.png"
-                  alt="split screen icon"
-                  width="30"
-                  height="30"
-                />
-              </span>
-            )}
-          </Fab>
-        )}
+              Example
+            </button>
+          ) : null}
+          {!isSplitScreen ? (
+            <button
+              type="button"
+              className="btn-action-ghost"
+              onClick={toggleEditHandlerCallback}
+              aria-label={isView ? "Switch to Edit" : "Switch to View"}
+            >
+              {isView ? (
+                <>
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                  </svg>
+                  Edit
+                </>
+              ) : (
+                <>
+                  <svg
+                    width="17"
+                    height="17"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden
+                  >
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                  View
+                </>
+              )}
+            </button>
+          ) : null}
+          {!isMobile ? (
+            <button
+              type="button"
+              className="btn-action-ghost"
+              onClick={toggleSplitHandlerCallback}
+              aria-label="Toggle split screen"
+            >
+              {isSplitScreen ? (
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <rect x="6" y="2" width="12" height="20" rx="2" />
+                </svg>
+              ) : (
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                >
+                  <rect x="2" y="2" width="8" height="20" rx="2" />
+                  <rect x="14" y="2" width="8" height="20" rx="2" />
+                </svg>
+              )}
+              Split Screen
+            </button>
+          ) : null}
+        </div>
       </Footer>
     </Fragment>
   );

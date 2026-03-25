@@ -87,7 +87,7 @@ export const authOptions: NextAuthOptions = {
 
         const isValid = await verifyPassword(
           credentials!.password,
-          user.password
+          user.password,
         );
 
         if (!isValid) {

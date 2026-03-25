@@ -114,7 +114,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 $set: {
                   "notebooks.$.updatedAt": date,
                 },
-              }
+              },
             )
             .then(
               (res) => {
@@ -128,7 +128,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 if (err) {
                   reject(err);
                 }
-              }
+              },
             );
         } catch (error) {
           if (error instanceof Error) {
@@ -167,7 +167,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 if (err) {
                   reject(err);
                 }
-              }
+              },
             );
         } catch (error) {
           reject(error);
@@ -185,7 +185,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             const notebookResult = await updateNotebook(
               uID,
               nbID,
-              new Date(latestUpdatedNote)
+              new Date(latestUpdatedNote),
             );
           } catch (err: any) {
             throw new Error("Could not update the Notebook!");

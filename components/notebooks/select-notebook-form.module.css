@@ -1,90 +1,230 @@
-.profile {
-  margin: 3rem auto;
-  text-align: center;
+/* Move to Notebook — parity with notes-svelte-public SelectNotebookForm.svelte */
+
+@keyframes sheetIn {
+  from {
+    transform: translateY(400px);
+    opacity: 0.99;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
-.profile h1 {
-  font-size: 5rem;
+@keyframes sheetOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(400px);
+  }
 }
 
-.form_outer {
-  z-index: 1;
-  top: 0;
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.5);
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(8, 18, 12, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bottomSheet {
+  background: var(--theme-surface);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 0 32px;
   width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  outline: none;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.12);
+  animation: sheetIn 380ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
 }
 
-.form_inner {
-  position: absolute;
-  top: 30%;
-  background-color: white;
-  width: 400px;
+@media (min-width: 768px) {
+  .bottomSheet {
+    max-width: 420px;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
+.bottomSheetExiting {
+  animation: sheetOut 300ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  background: var(--theme-border-input);
+  border-radius: 2px;
+  margin: 8px auto 20px;
+}
+
+.sheetTitle {
+  font-family: var(--theme-font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--theme-text);
+  padding: 0 20px;
+  margin: 0 0 18px;
+}
+
+.sheetField {
+  padding: 0 20px;
+  margin-bottom: 14px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--theme-text-secondary);
+  margin-bottom: 6px;
+}
+
+.notebookOptions {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 25px;
   flex-direction: column;
-  padding: 25px;
+  gap: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 0;
 }
 
-.button_row {
-  width: 100%;
-}
-
-.form {
-  width: 100%;
-  margin: 1rem auto;
-}
-
-.control {
+.notebookOption {
   display: flex;
-  margin-bottom: 0.5rem;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.control label {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: #353336;
-  display: block;
-}
-
-.control input {
-  display: block;
-  font: inherit;
-  max-width: 100%;
-  width: 200px;
-  border-radius: 4px;
-  border: 1px solid #38015c;
-  padding: 0.25rem;
-  background-color: #f7f0fa;
-}
-
-.action {
+  align-items: center;
+  gap: 12px;
   width: 100%;
-  display: flex;
-  justify-content: space-between;
+  padding: 10px 12px;
+  background: var(--theme-input-bg);
+  border: 1.5px solid var(--theme-border-input);
+  border-radius: var(--theme-radius-sm);
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  color: var(--theme-text);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 
-.submit {
-  display: flex;
-  width: 50%;
+.notebookOption:hover {
+  border-color: var(--theme-green);
 }
 
-@media only screen and (max-width: 380px) {
-  .control {
-    gap: 5px;
-  }
+.notebookOptionSelected {
+  border-color: var(--theme-green);
+  box-shadow: 0 0 0 2px rgba(46, 125, 82, 0.2);
+}
 
-  .control input {
-    font-size: 0.7rem !important;
-  }
+.notebookOption:focus {
+  outline: none;
+  border-color: var(--theme-green);
+  box-shadow: 0 0 0 3px rgba(46, 125, 82, 0.12);
+}
+
+.optionCover {
+  width: 24px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+.optionCoverForest {
+  background: var(--notebook-forest);
+}
+
+.optionCoverEmerald {
+  background: var(--notebook-emerald);
+}
+
+.optionCoverLime {
+  background: var(--notebook-lime);
+}
+
+.optionCoverSage {
+  background: var(--notebook-sage);
+}
+
+.nbSpine {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+
+.nbSpineForest {
+  background: var(--notebook-emerald-color);
+}
+
+.nbSpineEmerald {
+  background: var(--notebook-lime-color);
+}
+
+.nbSpineLime {
+  background: var(--notebook-sage-color);
+}
+
+.nbSpineSage {
+  background: var(--notebook-forest-color);
+}
+
+.optionName {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sheetActions {
+  display: flex;
+  gap: 10px;
+  padding: 6px 20px 0;
+  margin-top: 4px;
+}
+
+.btnCancel {
+  flex: 1;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border-input);
+  border-radius: var(--theme-radius-sm);
+  padding: 13px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btnCancel:hover {
+  background: #e8f4ec;
+}
+
+.btnMove {
+  flex: 1;
+  background: var(--theme-green);
+  color: white;
+  border: none;
+  border-radius: var(--theme-radius-sm);
+  padding: 13px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--theme-shadow-btn);
+}
+
+.btnMove:hover:not(:disabled) {
+  background: var(--theme-green-accent);
+}
+
+.btnMove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

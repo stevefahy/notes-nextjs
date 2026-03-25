@@ -1,12 +1,13 @@
 import dynamic from "next/dynamic";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect } from "react";
+import { useRouter } from "next/router";
 import { Props } from "../../types";
-import { useAppSelector } from "../../store/hooks";
+import { dispatchErrorSnack } from "../../lib/dispatchSnack";
+import { createOfflineAnchorClickCapture } from "../../lib/clientOfflineNav";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { GoogleAnalytics } from "@next/third-parties/google";
-
-const MainNavigation = dynamic(() => import("./main-navigation"), {
-  loading: () => null,
-});
+import { setScreenHeight } from "../../lib/setScreenHeight";
+import MainNavigation from "./main-navigation";
 const NotificationView = dynamic(() => import("../ui/notification-view"), {
   ssr: false,
 });
@@ -14,67 +15,61 @@ const SnackbarView = dynamic(() => import("../ui/snackbar-view"), {
   ssr: false,
 });
 
-// Set the CSS variable --jsvh (Javascript Vertical Height)
-// This var is used because on mobile browsers the css: calc(100vh)
-// includes the browser address bar area.
-// In the /styles/global.css
-// height: calc(100vh - var(--header-footer-height));
-// becomes:
-// height: calc(var(--jsvh) - var(--header-footer-height));
-const setScreenHeight = () => {
-  let jsvh = global.window && window.innerHeight;
-  let header_height =
-    global.document &&
-    document.getElementById("header_height")?.getBoundingClientRect().height;
-
-  global.document &&
-    document.documentElement.style.setProperty("--jsvh", `${jsvh}px`);
-  global.document &&
-    document.documentElement.style.setProperty(
-      "--jsheader-height",
-      `${header_height}`
-    );
-};
-
 const Layout = (props: Props) => {
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const isLoginPage = router.pathname === "/auth";
+
   const notification = useAppSelector((state) => state.ui.notification);
-  const snackbar = useAppSelector((state) => state.snack.snackbar);
-  const [status, setStatus] = useState(null);
 
   useEffect(() => {
-    setScreenHeight();
-    const handleResize = () => setScreenHeight();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+    if (isLoginPage) return;
+    const id = window.setTimeout(() => setScreenHeight(), 0);
+    return () => clearTimeout(id);
+  }, [isLoginPage, router.pathname]);
 
   useEffect(() => {
-    if (notification.status !== null) {
-      setStatus(notification.status);
-      const timer = setTimeout(() => {
-        setStatus(null);
-      }, 5000);
-      return () => {
-        clearTimeout(timer);
-      };
-    } else {
-      setStatus(null);
-    }
-  }, [notification]);
+    if (isLoginPage) return;
+    const onResize = () => setScreenHeight();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [isLoginPage]);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    const onRouteError = (err: Error & { cancelled?: boolean }) => {
+      if (err?.cancelled) return;
+      dispatchErrorSnack(dispatch, err, false);
+    };
+    router.events.on("routeChangeError", onRouteError);
+    return () => router.events.off("routeChangeError", onRouteError);
+  }, [dispatch, isLoginPage, router]);
+
+  useEffect(() => {
+    if (isLoginPage) return;
+    const onCaptureClick = createOfflineAnchorClickCapture(dispatch);
+    document.addEventListener("click", onCaptureClick, true);
+    return () => document.removeEventListener("click", onCaptureClick, true);
+  }, [dispatch, isLoginPage]);
 
   return (
     <Fragment>
-      <MainNavigation />
-      <main>{props.children}</main>
-      {status && (
-        <NotificationView
-          status={notification.status}
-          title={notification.title}
-          message={notification.message}
-        />
-      )}
-      <SnackbarView status={snackbar.status} message={snackbar.message} />
-      <GoogleAnalytics gaId="G-ES95HM1XLD" />
+      <div className="app-shell">
+        {!isLoginPage && <MainNavigation />}
+        <main className={isLoginPage ? "login-page" : undefined}>
+          {props.children}
+        </main>
+        {notification.status !== null && (
+          <NotificationView
+            key={`${notification.status}-${notification.title}-${notification.message}`}
+            status={notification.status}
+            title={notification.title}
+            message={notification.message}
+          />
+        )}
+        <SnackbarView />
+        <GoogleAnalytics gaId="G-ES95HM1XLD" />
+      </div>
     </Fragment>
   );
 };

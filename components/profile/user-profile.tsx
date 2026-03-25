@@ -1,95 +1,62 @@
-import dynamic from "next/dynamic";
-import { useSession } from "next-auth/react";
 import classes from "./user-profile.module.css";
-import { Fragment, useState } from "react";
-import { uiActions } from "../../store/ui-slice";
-import { useAppDispatch } from "../../store/hooks";
-
-const ProfileForm = dynamic(() => import("./profile-form"), {});
+import ProfileForm from "./profile-form";
+import { LoadingSpinner } from "../ui/loading-screen";
+import { useSession } from "next-auth/react";
 
 const UserProfile = () => {
   const { data: session, status, update } = useSession();
 
-  const dispatch = useAppDispatch();
+  const success = status === "authenticated";
+  const token = session?.user != null;
+  const details =
+    session?.user != null
+      ? {
+          username: session.user.username,
+          email: session.user.email,
+          _id: String(session.user._id),
+        }
+      : null;
 
-  const [updated, setUpdated] = useState(false);
+  const initial = details?.username?.charAt(0).toUpperCase() ?? "";
+  const avatarLabel = details?.username
+    ? `Avatar, ${details.username}`
+    : "User profile";
 
-  const errorMessage = (msg: string) => {
-    dispatch(
-      uiActions.showNotification({
-        status: "error",
-        title: "Error!",
-        message: msg,
-      })
-    );
-  };
-
-  const changePasswordHandler = async (passwordData: {}) => {
-    try {
-      const response = await fetch("/api/auth/user/change-password", {
-        method: "PATCH",
-        body: JSON.stringify(passwordData),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      errorMessage(error.message || `An error occured updating the Password!`);
-      return;
-    }
-    // Update the session
-    update();
-    setUpdated(true);
-  };
-
-  const changeUsernameHandler = async (usernameData: {}) => {
-    try {
-      const response = await fetch("/api/auth/user/change-username", {
-        method: "PATCH",
-        body: JSON.stringify(usernameData),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-      const data = await response.json();
-      if (data.error) {
-        throw new Error(data.error);
-      }
-    } catch (error: any) {
-      errorMessage(error.message || `An error occured updating the User Name!`);
-      return;
-    }
-    // Update the session
-    update();
-    setUpdated(true);
-  };
-
-  const profileUpdated = () => {
-    setUpdated((prev) => {
-      return false;
-    });
-    return updated;
-  };
+  const userId = details?._id ?? "";
+  const userEmail = details?.email ?? "";
 
   return (
-    <Fragment>
-      {session && (
-        <section className={classes.profile}>
-          <h2>{session?.user.username}</h2>
-          <h3>{session?.user.email}</h3>
-          <ProfileForm
-            username={session?.user.username}
-            onChangePassword={changePasswordHandler}
-            onChangeUsername={changeUsernameHandler}
-            updated={profileUpdated}
-          />
-        </section>
+    <section className={classes.profilePage}>
+      {!success && (
+        <div className={classes.loadingWrap} role="status" aria-label="Loading">
+          <LoadingSpinner />
+        </div>
       )}
-    </Fragment>
+      {success && !token && (
+        <p className={classes.unauthorized}>Unauthorized</p>
+      )}
+      {success && token && details && (
+        <>
+          <div className={classes.profileOuter} aria-label={avatarLabel}>
+            {initial}
+          </div>
+          <div className={classes.profileName}>
+            {details.username ? <div>{details.username}</div> : null}
+          </div>
+          <div className={classes.profileEmail}>
+            {details.email ? details.email : null}
+          </div>
+          <ProfileForm
+            userName={details.username}
+            userEmail={userEmail}
+            userId={userId}
+            onSessionRefresh={() => {
+              void update();
+            }}
+          />
+        </>
+      )}
+    </section>
   );
 };
 

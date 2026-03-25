@@ -70,7 +70,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 $set: {
                   "notebooks.$.updatedAt": new Date(),
                 },
-              }
+              },
             )
             .then(
               (res) => {
@@ -84,7 +84,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 if (err) {
                   reject(err);
                 }
-              }
+              },
             );
         } catch (error) {
           if (error instanceof Error) {
@@ -100,7 +100,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const createNote = (
       notebookID: ObjectId,
       userID: ObjectId,
-      note: string
+      note: string,
     ) => {
       return new Promise(async (resolve, reject) => {
         try {
@@ -124,7 +124,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 if (err) {
                   reject(err);
                 }
-              }
+              },
             );
         } catch (error) {
           reject(error);

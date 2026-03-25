@@ -1,91 +1,203 @@
-.profile {
-  margin: 3rem auto;
-  text-align: center;
-}
+/* Bottom sheet — parity with notes-svelte-public AddNotebookForm.svelte */
 
-.profile h1 {
-  font-size: 5rem;
-}
-
-.form_outer {
-  z-index: 1;
-  top: 0;
-  position: absolute;
-  background-color: rgba(0, 0, 0, 0.5);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.form_inner {
-  position: absolute;
-  top: 30%;
-  background-color: white;
-  width: 400px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 25px;
-  flex-direction: column;
-  padding: 25px;
-}
-
-.button_row {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-}
-
-.form {
-  width: 100%;
-  margin: 1rem auto;
-}
-
-.control {
-  display: flex;
-  margin-bottom: 0.5rem;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.control label {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
-  color: #353336;
-  display: block;
-}
-
-.control input {
-  display: block;
-  font: inherit;
-  max-width: 100%;
-  width: 100%;
-  border-radius: 4px;
-  border: 1px solid #38015c;
-  padding: 0.25rem;
-  background-color: #f7f0fa;
-}
-
-.action,
-.action_disabled {
-  display: flex;
-  justify-content: space-between;
-}
-
-.select_dialogue {
-  width: 100%;
-}
-
-@media only screen and (max-width: 380px) {
-  .control {
-    gap: 5px;
+@keyframes sheetIn {
+  from {
+    transform: translateY(400px);
+    opacity: 0.99;
   }
-
-  .control input {
-    font-size: 0.7rem !important;
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
+}
+
+@keyframes sheetOut {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(400px);
+  }
+}
+
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(8, 18, 12, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.bottomSheet {
+  background: var(--theme-surface);
+  border-radius: 22px 22px 0 0;
+  padding: 8px 0 32px;
+  width: 100%;
+  outline: none;
+  box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.12);
+  animation: sheetIn 380ms cubic-bezier(0.33, 1, 0.68, 1) forwards;
+}
+
+@media (min-width: 768px) {
+  .bottomSheet {
+    max-width: 420px;
+    border-radius: 22px 22px 0 0;
+  }
+}
+
+.bottomSheetExiting {
+  animation: sheetOut 300ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  background: var(--theme-border-input);
+  border-radius: 2px;
+  margin: 8px auto 20px;
+}
+
+.sheetTitle {
+  font-family: var(--theme-font-serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--theme-text);
+  padding: 0 20px;
+  margin: 0 0 18px;
+}
+
+.sheetField {
+  padding: 0 20px;
+  margin-bottom: 14px;
+}
+
+.sheetFieldset {
+  border: none;
+  margin: 0;
+}
+
+.formLabel {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--theme-text-secondary);
+  margin-bottom: 6px;
+}
+
+.formInput {
+  width: 100%;
+  background: var(--theme-input-bg);
+  border: 1.5px solid var(--theme-border-input);
+  border-radius: var(--theme-radius-sm);
+  padding: 11px 14px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  color: var(--theme-text);
+  outline: none;
+  box-sizing: border-box;
+}
+
+.formInput:focus {
+  border-color: var(--theme-green);
+  box-shadow: 0 0 0 3px rgba(46, 125, 82, 0.12);
+}
+
+.formInput:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.swatchRow {
+  display: flex;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  transition: box-shadow 0.15s ease;
+}
+
+.swatchForest {
+  background: var(--notebook-forest);
+}
+
+.swatchEmerald {
+  background: var(--notebook-emerald);
+}
+
+.swatchLime {
+  background: var(--notebook-lime);
+}
+
+.swatchSage {
+  background: var(--notebook-sage);
+}
+
+.swatchSelected {
+  box-shadow:
+    0 0 0 2.5px white,
+    0 0 0 4.5px var(--theme-green);
+}
+
+.swatch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sheetActions {
+  display: flex;
+  gap: 10px;
+  padding: 6px 20px 0;
+  margin-top: 4px;
+}
+
+.btnCancel {
+  flex: 1;
+  background: var(--theme-bg);
+  color: var(--theme-text);
+  border: 1px solid var(--theme-border-input);
+  border-radius: var(--theme-radius-sm);
+  padding: 13px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btnCancel:hover {
+  background: #e8f4ec;
+}
+
+.btnCreate {
+  flex: 1;
+  background: var(--theme-green);
+  color: white;
+  border: none;
+  border-radius: var(--theme-radius-sm);
+  padding: 13px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--theme-shadow-btn);
+}
+
+.btnCreate:hover:not(:disabled) {
+  background: var(--theme-green-accent);
+}
+
+.btnCreate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

@@ -1,43 +1,46 @@
-import dynamic from "next/dynamic";
+import { Fragment, useLayoutEffect } from "react";
 import Image from "next/image";
-import React, { Fragment } from "react";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
 import classes from "./main-navigation.module.css";
-
-const MenuDropdown = dynamic(() => import("../ui/menu-dropdown"), {});
-const Breadcrumb = dynamic(() => import("./breadcrumb"), {});
-
-const pages = [{ label: "Notebooks", link: "/notebooks" }];
+import MenuDropdown from "../ui/menu-dropdown";
+import Breadcrumb from "./breadcrumb";
+import { useAppSelector } from "../../store/hooks";
+import { setScreenHeight } from "../../lib/setScreenHeight";
 
 const MainNavigation = () => {
-	return (
-		<Fragment>
-			<div className={classes.header} id="header_height">
-				<div className={classes.header_container}>
-					<div className={classes.logo_container}>
-						<div className={classes.header_title_logo}>
-							<Image
-								src="/assets/images/edit_white.png"
-								alt="Notes logo"
-								width={20}
-								height={20}
-							/>
-						</div>
-						<div className={classes.header_title}>Notes</div>
-					</div>
-					<div className={classes.header_toolbar}>
-						<Toolbar>
-							<Box sx={{ flexGrow: 0 }}>
-								<MenuDropdown />
-							</Box>
-						</Toolbar>
-					</div>
-				</div>
-			</div>
-			<Breadcrumb />
-		</Fragment>
-	);
+  const editNotes = useAppSelector((state) => state.editNotes);
+
+  useLayoutEffect(() => {
+    setScreenHeight();
+  }, [editNotes.active, editNotes.selectedCount]);
+
+  return (
+    <Fragment>
+      <div className={classes.header} id="header_height">
+        <div className={classes.header_container}>
+          <div className={classes.logo_row}>
+            <div className={classes.logo_mark}>
+              <Image
+                src="/assets/images/edit_white.png"
+                alt="logo"
+                width={18}
+                height={18}
+              />
+            </div>
+            <span className={classes.logo_text}>Notes</span>
+          </div>
+          <div className={classes.header_toolbar}>
+            {editNotes.active && editNotes.selectedCount > 0 ? (
+              <span className={classes.editNotesPill} aria-live="polite">
+                {editNotes.selectedCount} selected
+              </span>
+            ) : null}
+            <MenuDropdown />
+          </div>
+        </div>
+      </div>
+      <Breadcrumb />
+    </Fragment>
+  );
 };
 
 export default MainNavigation;

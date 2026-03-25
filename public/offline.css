@@ -1,0 +1,235 @@
+/**
+ * Offline fallback (public/) — cannot import Next-bundled CSS.
+ *
+ * Theme tokens: the :root block below must match styles/theme-variables.css
+ * (same custom property names and values). When you change the app theme,
+ * copy the entire :root { ... } from that file into this file.
+ */
+
+:root {
+  /* Primary palette */
+  --theme-lime: #8be04a;
+  --theme-lime-light: #b8ef80;
+  --theme-lime-bg: #eef8e2;
+  --theme-green: #1b3d29;
+  --theme-green-mid: #3d9966;
+  --theme-green-dark: #001f0c;
+  --theme-green-accent: #2e7d52;
+  --theme-green-light: #c8dcc0;
+
+  --theme-danger-bg: #fef2f2;
+  --theme-danger-dark: #b91c1c;
+  --theme-danger-light: #fff9f9;
+
+  --theme-edit-bg: #f9f9f9;
+  --theme-edit-text: #071d11;
+
+  /* Input colors */
+  --theme-input-border: #c0dcc8;
+
+  /* Surfaces */
+  --theme-surface: #ffffff;
+  --theme-bg: #f4f9f1;
+  --theme-note-bg: #ffffff;
+  --theme-bg-light: rgba(244, 249, 241, 0.1);
+  --theme-input-bg: rgb(244, 249, 241);
+  --theme-border: rgba(0, 0, 0, 0.07);
+  --theme-border-dark: rgba(0, 0, 0, 0.1);
+  --theme-border-green: #d4e2cc;
+  --theme-border-input: #d0e8d8;
+  --theme-ghost-hover: #fbfbfb;
+  --theme-green-snackbar: #2d4a2d;
+
+  /* Snackbar variants */
+  --theme-snackbar-error-bg: #2c1a1a;
+  --theme-snackbar-error-text: #f5c1c1;
+  --theme-snackbar-error-dot: #e87070;
+  --theme-snackbar-warning-bg: #2c2310;
+  --theme-snackbar-warning-text: #fad9a0;
+  --theme-snackbar-warning-dot: #f0a030;
+
+  /* Text */
+  --theme-text: #111c16;
+  --theme-text-secondary: #3d5a47;
+  --theme-text-muted: #7da08a;
+
+  /* Shadows */
+  --theme-shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+  --theme-shadow-mid: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --theme-shadow-lg:
+    0 24px 64px rgba(0, 0, 0, 0.14), 0 4px 16px rgba(0, 0, 0, 0.07);
+  --theme-shadow-card: 0 -4px 30px rgba(0, 0, 0, 0.1);
+  --theme-shadow-btn: 0 4px 14px rgba(46, 125, 82, 0.35);
+
+  /* Typography */
+  --theme-font-sans: "DM Sans", sans-serif;
+  --theme-font-serif: "Lora", serif;
+  --theme-font-lato: "Lato", sans-serif;
+
+  /* App shell — max width of the centered app column on desktop */
+  --app-shell-width: 1200px;
+
+  /* Spacing / radii */
+  --theme-radius-sm: 10px;
+  --theme-radius-card: 24px;
+
+  /* Notebook cover gradients (design reference cov-1 to cov-4) */
+  --notebook-forest: linear-gradient(145deg, #1b3d29, #06100a);
+  --notebook-emerald: linear-gradient(145deg, #1b3d29, #00920c);
+  --notebook-lime: linear-gradient(145deg, #8be04a, #5db830);
+  --notebook-sage: linear-gradient(145deg, #82c098, #7d9886);
+  /* Icon colors for breadcrumb (solid) */
+  --notebook-forest-color: #1b3d29;
+  --notebook-emerald-color: #2e7d52;
+  --notebook-lime-color: #5db830;
+  --notebook-sage-color: #7d9886;
+
+  --size-095: 0.95rem;
+  --size-1: 1rem;
+  --size-1_1: 1.1rem;
+
+  --header-height: calc(var(--jsheader-height));
+  --footer-height: 70;
+  --breadcrumb-height: 40;
+
+  --viewnotethumb-box-min-height: 56;
+
+  color: var(--theme-text-secondary);
+  font-family: var(--theme-font-sans);
+}
+
+/* App sets --jsheader-height on html (lib/setScreenHeight); offline has no JS — define for valid --header-height if needed */
+:root {
+  --jsheader-height: 56px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--theme-font-sans);
+  font-size: 16px;
+  color: var(--theme-text);
+  background: var(--theme-bg);
+}
+
+/* Layout aligned with styles/login-splash.css; uses theme vars only */
+.splash-login.offline-fallback {
+  background: var(--theme-bg);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-top: 2rem;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+}
+
+.splash-top {
+  padding: 32px 26px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.splash-logo-row {
+  display: flex;
+  align-items: center;
+}
+
+.splash-logo-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--theme-green);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.splash-logo-mark img {
+  display: block;
+}
+
+.splash-logo-text {
+  font-family: var(--theme-font-serif);
+  font-size: 25px;
+  font-weight: 600;
+  color: var(--theme-green);
+  letter-spacing: -0.02em;
+}
+
+.login-card {
+  background: var(--theme-surface);
+  border-radius: var(--theme-radius-card);
+  padding: 28px 24px 32px;
+  margin-top: 0.5rem;
+  flex: 0 0 auto;
+  box-shadow: var(--theme-shadow-card);
+  max-width: 430px;
+  width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.login-card-title {
+  font-family: var(--theme-font-serif);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--theme-text);
+  margin: 0 0 16px;
+}
+
+.offline-message {
+  font-family: var(--theme-font-sans);
+  font-size: 16px;
+  line-height: 1.3;
+  color: var(--theme-text-secondary);
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+/* Matches .splash-login .btn-login in styles/login-splash.css */
+.splash-login.offline-fallback .btn-login {
+  width: 150px;
+  background: var(--theme-green);
+  color: #fff;
+  border: none;
+  border-radius: var(--theme-radius-sm);
+  padding: 13px;
+  font-family: var(--theme-font-sans);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 40px;
+  margin-bottom: 0;
+  box-shadow: var(--theme-shadow-btn);
+}
+
+.splash-login.offline-fallback .btn-login:hover {
+  background: var(--theme-green-accent);
+}
+
+@media (max-width: 431px) {
+  .login-card {
+    border-radius: var(--theme-radius-card) var(--theme-radius-card)
+      var(--theme-radius-card) var(--theme-radius-card);
+  }
+
+  .splash-login.offline-fallback .btn-login {
+    padding: 10px;
+  }
+}

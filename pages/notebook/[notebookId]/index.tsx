@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { GetServerSideProps, NextPage } from "next";
 import { useRouter } from "next/router";
@@ -12,41 +12,54 @@ import {
   UserNotebook,
   UserNotebooks,
 } from "../../../types";
+import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
+import { dispatchErrorSnack } from "../../../lib/dispatchSnack";
+import { runClientNavIfOnline } from "../../../lib/clientOfflineNav";
 import { getNotes, getNotebook, getNotebooks } from "../../../lib/db-helpers";
-import { uiActions } from "../../../store/ui-slice";
+import { showErrorMessage } from "../../../lib/errorMessageMap";
+import {
+  toLegacyCover,
+  type NotebookCoverType,
+} from "../../../lib/folder-options";
 import { editActions } from "../../../store/edit-slice";
+import { editNotesActions } from "../../../store/edit-notes-slice";
 import { useAppDispatch } from "../../../store/hooks";
 import { useAppSelector } from "../../../store/hooks";
-import Fab from "@mui/material/Fab";
-import EditIcon from "@mui/icons-material/Edit";
-import CancelIcon from "@mui/icons-material/Cancel";
-import DeleteIcon from "@mui/icons-material/Delete";
-import FlipToFrontIcon from "@mui/icons-material/FlipToFront";
-import NoteAddIcon from "@mui/icons-material/NoteAdd";
-
+import ErrorAlert from "../../../components/ui/error-alert";
+import AddNotebookForm from "../../../components/notebooks/add-notebook-form";
+import SelectNotebookForm from "../../../components/notebooks/select-notebook-form";
 const LoadingScreen = dynamic(
-  () => import("../../../components/ui/loading-screen")
+  () => import("../../../components/ui/loading-screen"),
 );
 const NoteList = dynamic(
-  () => import("../../../components/notebooks/note-list")
-);
-const AddNotebookForm = dynamic(
-  () => import("../../../components/notebooks/add-notebook-form")
-);
-const SelectNotebookForm = dynamic(
-  () => import("../../../components/notebooks/select-notebook-form")
+  () => import("../../../components/notebooks/note-list"),
 );
 const Footer = dynamic(() => import("../../../components/layout/footer"));
+
+const AC = APPLICATION_CONSTANTS;
 
 const NotebookPage: NextPage<NotesDB> = (props) => {
   const router = useRouter();
   const { notebookId } = router.query;
 
-  const notes_found = props.notes.result?.notes;
-  const notebook_found = props.notebook.result;
+  const notes_found = props.notes?.result?.notes;
+  const notebook_found = props.notebook?.result ?? undefined;
   const notebooks_found = props.notebooks?.result?.notebooks;
 
+  const serverError =
+    props.notes?.error || props.notebook?.error || props.notebooks?.error;
+  const hasPropsError =
+    Boolean(serverError) ||
+    (props.notes?.message === "Error" &&
+      props.notes?.result == null &&
+      props.notebook?.result == null);
+
+  const errorDisplay = serverError
+    ? showErrorMessage(serverError, true)
+    : AC.NOTEBOOK_ERROR;
+
   const dispatch = useAppDispatch();
+  const serverErrorReported = useRef<string | null>(null);
   const notification_editing = useAppSelector((state) => state.edit.editing);
 
   const [isSelected, setIsSelected] = useState<SelectedNote | null>();
@@ -56,7 +69,7 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
   const [notebooks, setNotebooks] = useState<Notebook[]>();
   const [editNotebook, setEditNotebook] = useState(false);
   const [editNotes, setEditNotes] = useState(false);
-  const [clearEditNotes, setClearEditNotes] = useState(false);
+  const [noteListResetKey, setNoteListResetKey] = useState(0);
   const [notesLoaded, setNotesLoaded] = useState(false);
   const [notebookLoaded, setNotebookLoaded] = useState(false);
 
@@ -65,6 +78,21 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
       editNotebookBtnHandler();
     }
   }, [notification_editing]);
+
+  useEffect(() => {
+    if (!hasPropsError) {
+      serverErrorReported.current = null;
+      return;
+    }
+    const key = serverError ?? "notebook-load-error";
+    if (serverErrorReported.current === key) return;
+    serverErrorReported.current = key;
+    dispatchErrorSnack(
+      dispatch,
+      serverError ?? AC.NOTEBOOK_ERROR,
+      Boolean(serverError),
+    );
+  }, [dispatch, hasPropsError, serverError]);
 
   const sortNotes = useCallback((notes: Note[]) => {
     // Add an update date for sorting if one does not exist
@@ -111,12 +139,15 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
   }, [notebooks_found]);
 
   const addNoteFormHandler = () => {
-    router.push(`/notebook/${notebookId}/create-note`);
+    if (notebookId === undefined) return;
+    runClientNavIfOnline(
+      dispatch,
+      () => void router.push(`/notebook/${notebookId}/create-note`),
+    );
   };
 
   const editNoteFormHandler = () => {
     setEditNotes(true);
-    setClearEditNotes(false);
   };
 
   const resetNotesSelected = () => {
@@ -128,8 +159,9 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
 
   const cancelEditNoteFormHandler = () => {
     setEditNotes(false);
-    setClearEditNotes(true);
+    setNoteListResetKey((k) => k + 1);
     resetNotesSelected();
+    dispatch(editNotesActions.resetEditNotes());
   };
 
   const deleteNoteHandler = async () => {
@@ -151,13 +183,7 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         }
         const data = await response.json();
         if (data.error) {
-          dispatch(
-            uiActions.showNotification({
-              status: "error",
-              title: "Error!",
-              message: data.error,
-            })
-          );
+          dispatchErrorSnack(dispatch, data.error, true);
           return;
         }
         let updatedNotesLatestDate: string | undefined;
@@ -198,14 +224,8 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
           }
         }
         cancelEditNoteFormHandler();
-      } catch (error: any) {
-        dispatch(
-          uiActions.showNotification({
-            status: "error",
-            title: "Error!",
-            message: error.message,
-          })
-        );
+      } catch (error: unknown) {
+        dispatchErrorSnack(dispatch, error, false);
         return;
       }
     }
@@ -213,7 +233,7 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
 
   const editNotebookDateHandler = async (
     notebookID: string,
-    notebookUpdated: string
+    notebookUpdated: string,
   ) => {
     if (notebookID && notebookUpdated) {
       const edit = {
@@ -234,23 +254,11 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         }
         const data = await response.json();
         if (data.error) {
-          dispatch(
-            uiActions.showNotification({
-              status: "error",
-              title: "Error!",
-              message: data.error,
-            })
-          );
+          dispatchErrorSnack(dispatch, data.error, true);
           return;
         }
-      } catch (error: any) {
-        dispatch(
-          uiActions.showNotification({
-            status: "error",
-            title: "Error!",
-            message: error.message,
-          })
-        );
+      } catch (error: unknown) {
+        dispatchErrorSnack(dispatch, error, false);
         return;
       }
     }
@@ -259,57 +267,46 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
   const editNotebookHandler = async (
     notebookID: string,
     notebookName: string,
-    notebookCover: string,
-    notebookUpdated: string
-  ) => {
-    if (notebookID && notebookName && notebookCover && notebookUpdated) {
-      const edit = {
-        notebookID,
-        notebookName,
-        notebookCover,
-        notebookUpdated,
-      };
-      let response;
-      try {
-        response = await fetch("/api/db/edit-notebook", {
-          method: "POST",
-          body: JSON.stringify(edit),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        if (!response.ok) {
-          throw new Error("An error occured updating the notebook!");
-        }
-        const data = await response.json();
-        if (data.error) {
-          dispatch(
-            uiActions.showNotification({
-              status: "error",
-              title: "Error!",
-              message: data.error,
-            })
-          );
-          return;
-        }
-        setNotebook((prev) => data.edited);
-        dispatch(editActions.editStatus({ status: false }));
-        dispatch(
-          editActions.editChange({
-            message: data.edited,
-          })
-        );
-        setEditNotebook((prev) => false);
-      } catch (error: any) {
-        dispatch(
-          uiActions.showNotification({
-            status: "error",
-            title: "Error!",
-            message: error.message,
-          })
-        );
-        return;
+    notebookCover: NotebookCoverType,
+    notebookUpdated: string,
+  ): Promise<boolean> => {
+    if (!notebookID || !notebookName || !notebookCover || !notebookUpdated) {
+      return false;
+    }
+    const edit = {
+      notebookID,
+      notebookName,
+      notebookCover: toLegacyCover(notebookCover),
+      notebookUpdated,
+    };
+    try {
+      const response = await fetch("/api/db/edit-notebook", {
+        method: "POST",
+        body: JSON.stringify(edit),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("An error occured updating the notebook!");
       }
+      const data = await response.json();
+      if (data.error) {
+        dispatchErrorSnack(dispatch, data.error, true);
+        return false;
+      }
+      setNotebook((prev) => data.edited);
+      dispatch(editActions.editStatus({ status: false }));
+      dispatch(
+        editActions.editChange({
+          message: data.edited,
+        }),
+      );
+      setEditNotebook((prev) => false);
+      return true;
+    } catch (error: unknown) {
+      dispatchErrorSnack(dispatch, error, false);
+      return false;
     }
   };
 
@@ -329,7 +326,7 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
 
   const updateNotebookDate = (
     notebookId: string,
-    notebookLatesDate: string
+    notebookLatesDate: string,
   ) => {
     editNotebookDateHandler(notebookId, notebookLatesDate);
   };
@@ -358,13 +355,7 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         }
         const data = await response.json();
         if (data.error) {
-          dispatch(
-            uiActions.showNotification({
-              status: "error",
-              title: "Error!",
-              message: data.error,
-            })
-          );
+          dispatchErrorSnack(dispatch, data.error, true);
           return;
         }
         let updatedNotesLatestDate: string | undefined;
@@ -399,14 +390,8 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         setMoveNote((prev) => false);
         // Reset
         cancelEditNoteFormHandler();
-      } catch (error: any) {
-        dispatch(
-          uiActions.showNotification({
-            status: "error",
-            title: "Error!",
-            message: error.message,
-          })
-        );
+      } catch (error: unknown) {
+        dispatchErrorSnack(dispatch, error, false);
         return;
       }
     }
@@ -432,32 +417,20 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         }
         const data = await response.json();
         if (data.error) {
-          dispatch(
-            uiActions.showNotification({
-              status: "error",
-              title: "Error!",
-              message: data.error,
-            })
-          );
+          dispatchErrorSnack(dispatch, data.error, true);
           return;
         }
-        router.push(`/notebooks`);
-      } catch (error: any) {
-        dispatch(
-          uiActions.showNotification({
-            status: "error",
-            title: "Error!",
-            message: error.message,
-          })
-        );
+        runClientNavIfOnline(dispatch, () => void router.push(`/notebooks`));
+      } catch (error: unknown) {
+        dispatchErrorSnack(dispatch, error, false);
         return;
       }
     }
   };
 
-  const updateSelected = (selected: SelectedNote) => {
-    setIsSelected((prev) => selected);
-  };
+  const updateSelected = useCallback((selected: SelectedNote) => {
+    setIsSelected(selected);
+  }, []);
 
   const moveNoteFormHandler = () => {
     setMoveNote((prevState) => true);
@@ -477,20 +450,26 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
 
   return (
     <Fragment>
-      {(!notebookLoaded || !notesLoaded) && <LoadingScreen />}
+      {!hasPropsError && (!notebookLoaded || !notesLoaded) && <LoadingScreen />}
+      {hasPropsError && (
+        <div className="page_scrollable_header_breadcrumb_footer_list">
+          <ErrorAlert>{errorDisplay}</ErrorAlert>
+        </div>
+      )}
       {notebook && notes && (
         <div className="page_scrollable_header_breadcrumb_footer_list">
           {notes && notebook && (
             <NoteList
+              key={noteListResetKey}
               notes={notes}
               onNotesSelected={updateSelected}
               onNotesEdit={editNotes}
-              onClearNotesEdit={clearEditNotes}
             />
           )}
-          {moveNote && notebooks && (
+          {moveNote && notebooks && typeof notebookId === "string" && (
             <SelectNotebookForm
               notebooks={notebooks}
+              currentNotebookId={notebookId}
               moveNotes={moveNoteHandler}
               onCancel={cancelHandler}
             />
@@ -506,78 +485,118 @@ const NotebookPage: NextPage<NotesDB> = (props) => {
         </div>
       )}
       <Footer>
-        {!editNotes && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={addNoteFormHandler}
-          >
-            <NoteAddIcon sx={{ mr: 1 }} />
-            Add Note
-          </Fab>
-        )}
-
-        {!editNotes && notes && notes.length > 0 && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={editNoteFormHandler}
-          >
-            <EditIcon sx={{ mr: 1 }} />
-            Edit Notes
-          </Fab>
-        )}
-
-        {notes && notes.length < 1 && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={deleteNotebookHandler}
-          >
-            <DeleteIcon sx={{ mr: 1 }} />
-            Delete Notebook
-          </Fab>
-        )}
-
-        {editNotes && isSelected && isSelected.selected.length > 0 && (
-          <Fragment>
-            <Fab
-              variant="extended"
-              color="secondary"
-              size="medium"
-              onClick={deleteNoteHandler}
-            >
-              <DeleteIcon sx={{ mr: 1 }} />
-              Delete
-            </Fab>
-            {notebooks && notebooks.length > 1 && (
-              <Fab
-                variant="extended"
-                color="secondary"
-                size="medium"
+        {notebookLoaded && notesLoaded ? (
+          <div className="nb-footer-row">
+            {!editNotes && notes && notes.length > 0 ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={editNoteFormHandler}
+              >
+                <svg
+                  width="17"
+                  height="17"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden
+                  className="media_query_size"
+                >
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Edit Notes
+              </button>
+            ) : null}
+            {!editNotes ? (
+              <button
+                type="button"
+                className="btn-action-primary"
+                onClick={addNoteFormHandler}
+              >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden
+                  className="media_query_size"
+                >
+                  <path
+                    d="M6 1v10M1 6h10"
+                    stroke="white"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Add Note
+              </button>
+            ) : null}
+            {notes && notes.length < 1 ? (
+              <button
+                type="button"
+                className="btn-action-danger"
+                onClick={deleteNotebookHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon danger">
+                    delete
+                  </span>
+                  Delete Notebook
+                </span>
+              </button>
+            ) : null}
+            {editNotes && isSelected && isSelected.selected.length > 0 ? (
+              <button
+                type="button"
+                className="btn-action-danger"
+                onClick={deleteNoteHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon danger media_query_size">
+                    delete
+                  </span>
+                  Delete
+                </span>
+              </button>
+            ) : null}
+            {editNotes &&
+            isSelected &&
+            isSelected.selected.length > 0 &&
+            notebooks &&
+            notebooks.length > 1 ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
                 onClick={moveNoteFormHandler}
               >
-                <FlipToFrontIcon sx={{ mr: 1 }} />
-                Move
-              </Fab>
-            )}
-          </Fragment>
-        )}
-
-        {editNotes && (
-          <Fab
-            variant="extended"
-            color="secondary"
-            size="medium"
-            onClick={cancelEditNoteFormHandler}
-          >
-            <CancelIcon sx={{ mr: 1 }} />
-            Cancel
-          </Fab>
-        )}
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon green symbol_size media_query_size">
+                    flip_to_front
+                  </span>
+                  Move to…
+                </span>
+              </button>
+            ) : null}
+            {editNotes ? (
+              <button
+                type="button"
+                className="btn-action-ghost"
+                onClick={cancelEditNoteFormHandler}
+              >
+                <span className="icon_text">
+                  <span className="material-symbols-outlined button_icon green media_query_size">
+                    cancel
+                  </span>
+                  Cancel
+                </span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </Footer>
     </Fragment>
   );
@@ -601,12 +620,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   let notebookId = context.params?.notebookId?.toString();
   if (!notebookId) {
     const errorFound: UserNotes = {
-      error: "",
+      error: APPLICATION_CONSTANTS.NOTEBOOK_ERROR,
       message: "Error",
       result: null,
     };
     return {
-      props: { notes: errorFound },
+      props: {
+        notes: errorFound,
+        notebook: { ...errorFound } as UserNotebook,
+        notebooks: { ...errorFound } as UserNotebooks,
+      },
     };
   }
 

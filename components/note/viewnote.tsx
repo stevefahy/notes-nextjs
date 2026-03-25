@@ -1,67 +1,71 @@
-import React, { useState, useEffect, Fragment, memo } from "react";
-import dynamic from "next/dynamic";
-import matter from "gray-matter";
-import Card from "@mui/material/Card";
-import CardContent from "@mui/material/CardContent";
-import classesShared from "./editviewnote_shared.module.css";
+import { useState, useEffect, Fragment, memo } from "react";
+import matter from "../../lib/matter";
 import { NoteEditorView } from "../../types";
-
-const ViewNoteMarkdown = dynamic(() => import("./viewnote_markdown"), {
-  ssr: false,
-});
+import { SkeletonBlock } from "../ui/skeleton-block";
+import ViewNoteMarkdown from "./viewnote_markdown";
 
 const ViewNote = (props: NoteEditorView) => {
   const splitscreen = props.splitScreen;
   const isVisible = props.visible;
 
-  const { data, content } = matter(props.viewText);
+  const { content } = matter(props.viewText);
   const [contextView, setContextView] = useState("");
   const [isSplitScreen, setIsSplitScreen] = useState(splitscreen);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const updateViewText = (a: any) => {
+  const updateViewText = (a: string | ((prev: string) => string)): void => {
     props.updatedViewText(a);
   };
 
   useEffect(() => {
     if (content !== contextView) {
-      setContextView((prev) => content);
-      return () => {
-        // component unmount
-      };
+      setContextView(content);
     }
+    setIsLoaded(true);
+    return () => {};
   }, [content, contextView]);
 
   useEffect(() => {
     setIsSplitScreen(splitscreen);
   }, [splitscreen]);
 
+  const viewPaneClassName = [
+    "view",
+    "editnote_box",
+    isSplitScreen && "view_split",
+    isSplitScreen && "show",
+    !isSplitScreen && isVisible && "show",
+    !isSplitScreen && !isVisible && "hide",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <Fragment>
-      <div
-        id="view"
-        className={`view ${
-          isSplitScreen ? `view_split ${classesShared.show}` : ""
-        } ${classesShared.editnote_box} ${
-          isVisible ? classesShared.show : classesShared.hide
-        }`}
-      >
-        <Card sx={{ width: "100%" }}>
-          <CardContent>
-            <article
-              id="viewnote_id"
-              className={`viewnote_content viewer ${classesShared.viewnote_content}`}
-            >
+      <div id="view" className={viewPaneClassName}>
+        <div className="note-card">
+          <div
+            id="viewnote_id"
+            className="v-card-text cardcontent viewnote_content"
+          >
+            {!isLoaded ? (
+              <SkeletonBlock
+                className="skeleton-view-placeholder"
+                height={50}
+              />
+            ) : (
               <ViewNoteMarkdown
                 splitScreen={splitscreen}
                 viewText={contextView}
                 updatedViewText={updateViewText}
                 disableLinks={false}
               />
-            </article>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
       </div>
     </Fragment>
   );
 };
+
 export default memo(ViewNote);

@@ -1,40 +1,50 @@
-import { NextPage } from "next";
-import Link from "next/link";
 import { ButtonType } from "../../types";
-import { Button as MUIButton } from "@mui/material";
+import Link from "next/link";
+import classes from "./button.module.css";
 
-interface MUIButtonType extends ButtonType {}
+const sizeClass = {
+  small: classes.sizeSmall,
+  medium: classes.sizeMedium,
+  large: classes.sizeLarge,
+} as const;
 
-const Button: NextPage<MUIButtonType> = (props) => {
-  let default_color = props.color ? props.color : "secondary";
-  let default_variant = props.variant ? props.variant : "text";
-  let default_size = props.size ? props.size : "small";
-  let default_type = props.type ? props.type : "button";
+const Button = (props: ButtonType) => {
+  const size = props.size ?? "small";
+  const variant = props.variant ?? "text";
+  const color = props.color ?? "secondary";
+  const type = props.type ?? "button";
+
+  const sizeCls = sizeClass[size] ?? classes.sizeSmall;
+
+  let variantCls = classes.variantText;
+  if (variant === "contained") {
+    variantCls =
+      color === "secondary"
+        ? classes.containedSecondary
+        : classes.containedPrimary;
+  } else if (variant === "outlined") {
+    variantCls = classes.variantOutlined;
+  }
+
+  const className = [classes.root, sizeCls, variantCls].join(" ");
 
   if (props.link) {
     return (
-      <MUIButton
-        color={default_color}
-        variant={default_variant}
-        disabled={props.disabled}
-        size={props.size}
-        type={default_type}
-      >
-        <Link href={props.link}>{props.children}</Link>
-      </MUIButton>
+      <Link className={className} href={props.link}>
+        {props.children}
+      </Link>
     );
   }
+
   return (
-    <MUIButton
-      size={props.size}
-      color={default_color}
-      variant={default_variant}
+    <button
+      type={type}
+      className={className}
       disabled={props.disabled}
       onClick={props.onClick}
-      type={default_type}
     >
       {props.children}
-    </MUIButton>
+    </button>
   );
 };
 

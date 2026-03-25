@@ -3,7 +3,7 @@ import { hashPassword } from "../../../lib/auth";
 import { getDb } from "../../../lib/db";
 import { MongoClient, Db, ObjectId } from "mongodb";
 import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
-import WELCOME_NOTE from "./../../../public/assets/markdown/welcome_markdown_nextjs.md";
+import WELCOME_NOTE from "./../../../public/assets/markdown/welcome_markdown.md";
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
@@ -128,7 +128,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             res.status(422).json({ error: `Could not create the note!` });
             return;
           }
-        }
+        },
       );
   } catch (error: any) {
     res.status(422).json({ error: APPLICATION_CONSTANTS.CREATE_NOTE_ERROR });

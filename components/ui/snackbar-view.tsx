@@ -1,51 +1,72 @@
-import { forwardRef } from "react";
-import Stack from "@mui/material/Stack";
-import Snackbar from "@mui/material/Snackbar";
-import MuiAlert, { AlertProps } from "@mui/material/Alert";
-import { snackActions } from "../../store/snack-slice";
-import { useAppDispatch } from "../../store/hooks";
-import { SnackbarProps } from "../../types";
+import { useEffect } from "react";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { snackActions, SnackVariant } from "../../store/snack-slice";
 
-const Alert = forwardRef<HTMLDivElement, AlertProps>(function Alert(
-  props,
-  ref
-) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
+const SNACK_MS = 4000;
 
-const SnackbarView = (props: SnackbarProps) => {
+const SnackbarView = () => {
   const dispatch = useAppDispatch();
+  const { status, message, variant } = useAppSelector(
+    (state) => state.snack.snackbar,
+  );
 
-  const handleClose = (
-    event?: React.SyntheticEvent | Event,
-    reason?: string
-  ) => {
-    if (reason === "clickaway") {
-      return;
-    }
+  useEffect(() => {
+    if (!status || !message) return;
+    const t = window.setTimeout(() => {
+      dispatch(snackActions.hideSnack());
+    }, SNACK_MS);
+    return () => clearTimeout(t);
+  }, [status, message, dispatch]);
 
-    dispatch(
-      snackActions.showSnack({
-        status: false,
-        message: props.message,
-      })
-    );
-  };
+  const v: SnackVariant = variant ?? "success";
+  const multi = message.includes("\n");
+  const classNames = [
+    "snackbar",
+    status ? "show" : "",
+    `snackbar-${v}`,
+    multi ? "snackbar-multi" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
-    <Stack spacing={2} sx={{ width: "100%" }}>
-      <Snackbar
-        open={props.status}
-        autoHideDuration={2000}
-        onClose={handleClose}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        sx={{ bottom: { xs: 70, sm: 70 } }}
-      >
-        <Alert onClose={handleClose} severity="success">
-          {props.message}
-        </Alert>
-      </Snackbar>
-    </Stack>
+    <div className={classNames} id="snackbar" role="status" aria-live="polite">
+      {v === "success" && (
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          className="snackbar-icon"
+          aria-hidden
+        >
+          <circle
+            cx="8"
+            cy="8"
+            r="7.5"
+            fill="rgba(255,255,255,0.2)"
+            stroke="rgba(255,255,255,0.5)"
+            strokeWidth="1"
+          />
+          <path
+            d="M4.5 8l2.5 2.5 4.5-4.5"
+            stroke="white"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+      {v === "error" && (
+        <div className="snackbar-dot snackbar-dot-error" aria-hidden />
+      )}
+      {v === "warning" && (
+        <div className="snackbar-dot snackbar-dot-warning" aria-hidden />
+      )}
+      <span id="snackbar-msg" className="snackbar-msg">
+        {message}
+      </span>
+    </div>
   );
 };
 

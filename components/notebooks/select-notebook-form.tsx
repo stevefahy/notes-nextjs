@@ -1,161 +1,215 @@
-import React, { ChangeEvent, useState, useCallback, useEffect } from "react";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/router";
+import React, {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classes from "./select-notebook-form.module.css";
-import { Notebook, NotebookType, SelectNotebookFormProps } from "../../types";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import CancelIcon from "@mui/icons-material/Cancel";
+import { getDisplayCover } from "../../lib/notebookCoverUtils";
+import type { NotebookCoverType } from "../../lib/folder-options";
+import { Notebook, SelectNotebookFormProps } from "../../types";
 
-const Button = dynamic(() => import("../ui/button"));
-const ErrorAlert = dynamic(() => import("../ui/error-alert"));
+const optionCoverTint: Record<NotebookCoverType, string> = {
+  forest: classes.optionCoverForest,
+  emerald: classes.optionCoverEmerald,
+  lime: classes.optionCoverLime,
+  sage: classes.optionCoverSage,
+};
+
+const nbSpineTint: Record<NotebookCoverType, string> = {
+  forest: classes.nbSpineForest,
+  emerald: classes.nbSpineEmerald,
+  lime: classes.nbSpineLime,
+  sage: classes.nbSpineSage,
+};
 
 const SelectNotebookForm = (props: SelectNotebookFormProps) => {
-  const router = useRouter();
-
-  const [error, setError] = useState({ error_state: false, message: "" });
+  const { notebooks, currentNotebookId, moveNotes, onCancel } = props;
   const [selectedNotebook, setSelectedNotebook] = useState("");
-  const [formIsValid, setFormIsValid] = useState(false);
-  const [notebooksSorted, setNotebooksSorted] = useState<Notebook[]>();
+  const [closing, setClosing] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
-  let notebook_object: Notebook;
-  const { notebooks } = props;
-  const { notebookId } = router.query;
-
-  const findNotebook = (notebook_id: string) => {
-    const index = notebooks.findIndex((x) => x._id === notebook_id);
-    return notebooks[index];
-  };
-
-  const sortNotes = useCallback((notebooks: Notebook[]) => {
-    // Add an update date for sorting if one does not exist
-    notebooks.map((x) => {
-      if (x.updatedAt === "No date" || undefined) {
-        x.updatedAt = "December 17, 1995 03:24:00";
-      }
+  const notebooksFiltered = useMemo(() => {
+    const copy = [...notebooks];
+    copy.sort((a, b) => {
+      const aDate =
+        a.updatedAt === "No date" || !a.updatedAt
+          ? "December 17, 1995"
+          : a.updatedAt;
+      const bDate =
+        b.updatedAt === "No date" || !b.updatedAt
+          ? "December 17, 1995"
+          : b.updatedAt;
+      return new Date(aDate) > new Date(bDate) ? -1 : 1;
     });
-    notebooks
-      .sort((a, b) => {
-        if (a.updatedAt !== undefined && b.updatedAt !== undefined) {
-          return new Date(a.updatedAt) > new Date(b.updatedAt) ? 1 : -1;
-        } else {
-          return a.updatedAt !== undefined ? 1 : -1;
-        }
-      })
-      .reverse();
-    return notebooks;
+    return copy.filter((n) => n._id !== currentNotebookId);
+  }, [notebooks, currentNotebookId]);
+
+  const formIsValid = selectedNotebook !== "" && selectedNotebook !== "default";
+
+  const finishClose = useCallback(() => {
+    onCancel();
+  }, [onCancel]);
+
+  const requestClose = useCallback((event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    setClosing(true);
   }, []);
 
+  const handleSheetAnimationEnd = useCallback(
+    (e: React.AnimationEvent<HTMLDivElement>) => {
+      if (!closing) return;
+      if (!e.animationName.includes("sheetOut")) return;
+      finishClose();
+    },
+    [closing, finishClose],
+  );
+
   useEffect(() => {
-    if (notebooks) {
-      let sorted = sortNotes(notebooks);
-      setNotebooksSorted(sorted);
-    }
-  }, [notebooks, sortNotes]);
+    const node = sheetRef.current;
+    if (!node) return;
+    const first = node.querySelector<HTMLButtonElement>(
+      `.${classes.notebookOption}`,
+    );
+    first?.focus();
+  }, []);
 
-  const cancelHandler = (event: React.FormEvent) => {
+  const cancelHandler = (event: React.FormEvent | React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    if (error.error_state) {
-      setError((prevState) => ({
-        ...prevState,
-        error_state: false,
-        message: "",
-      }));
-    }
-    props.onCancel();
+    requestClose(event);
   };
 
-  const submitHandler = async (event: React.FormEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (error.error_state) {
-      setError((prevState) => ({
-        ...prevState,
-        error_state: false,
-        message: "",
-      }));
-    }
-    notebook_object = findNotebook(selectedNotebook);
-
-    if (!selectedNotebook) {
-      setFormIsValid(false);
-      return;
-    }
-    props.moveNotes(selectedNotebook);
+  const submitHandler = (event?: React.MouseEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    if (!formIsValid || closing) return;
+    moveNotes(selectedNotebook);
   };
 
-  const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
-    setSelectedNotebook((prev) => event.target.value);
-    if (event.target.value === "default") {
-      setFormIsValid(false);
-    } else {
-      setFormIsValid(true);
+  const overlayKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      const t = e.target as HTMLElement;
+      if (t.closest(`.${classes.bottomSheet}`)) {
+        return;
+      }
+      e.preventDefault();
+      requestClose(e);
     }
+  };
+
+  const sheetKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      requestClose(e);
+    }
+  };
+
+  const handleOptionsKeydown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const root = e.currentTarget;
+    const optionEls = Array.from(
+      root.querySelectorAll<HTMLButtonElement>(`.${classes.notebookOption}`),
+    );
+    const current = optionEls.indexOf(
+      document.activeElement as HTMLButtonElement,
+    );
+    if (e.key === "ArrowDown" && current < optionEls.length - 1) {
+      e.preventDefault();
+      optionEls[current + 1].focus();
+    } else if (e.key === "ArrowUp" && current > 0) {
+      e.preventDefault();
+      optionEls[current - 1].focus();
+    }
+  };
+
+  const renderOption = (nb: Notebook) => {
+    const cover = getDisplayCover(nb.notebook_cover);
+    const selected = selectedNotebook === nb._id;
+    return (
+      <button
+        key={nb._id}
+        type="button"
+        className={`${classes.notebookOption} ${selected ? classes.notebookOptionSelected : ""}`}
+        id={`option-${nb._id}`}
+        role="option"
+        aria-selected={selected}
+        onClick={() => setSelectedNotebook(nb._id)}
+      >
+        <span className={`${classes.optionCover} ${optionCoverTint[cover]}`}>
+          <span className={`${classes.nbSpine} ${nbSpineTint[cover]}`} />
+        </span>
+        <span className={classes.optionName}>{nb.notebook_name}</span>
+      </button>
+    );
   };
 
   return (
-    <Dialog open={true} fullWidth={true}>
-      <DialogTitle>Move to Notebook</DialogTitle>
-      <DialogContent>
-        <form className={classes.form}>
-          <div className={classes.control}>
-            <label htmlFor="new-notebook-cover">Name</label>
-            <select
-              name="notebooks"
-              id="notebooks"
-              value={selectedNotebook}
-              onChange={handleChange}
-            >
-              <option defaultValue="true" value="default">
-                Select a notebook...
-              </option>
-              {notebooks &&
-                notebooksSorted &&
-                notebooksSorted.map((notebook) => {
-                  if (notebook._id !== notebookId) {
-                    return (
-                      <option value={notebook._id} key={notebook._id}>
-                        {notebook.notebook_name}
-                      </option>
-                    );
-                  } else {
-                    return;
-                  }
-                })}
-            </select>
-          </div>
-        </form>
+    <Fragment>
+      <div
+        className={classes.sheetOverlay}
+        role="button"
+        tabIndex={0}
+        aria-label="Close dialog"
+        onClick={cancelHandler}
+        onKeyDown={overlayKeyDown}
+      >
+        <div
+          ref={sheetRef}
+          className={`${classes.bottomSheet} ${closing ? classes.bottomSheetExiting : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="move-notebook-title"
+          tabIndex={-1}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={sheetKeyDown}
+          onAnimationEnd={handleSheetAnimationEnd}
+        >
+          <div className={classes.sheetHandle} aria-hidden />
 
-        <div className={classes.button_row}>
-          <div className={classes.action}>
-            <div className={classes.move}>
-              <Button
-                disabled={!formIsValid}
-                variant="contained"
-                color="secondary"
-                size="medium"
-                onClick={submitHandler}
-              >
-                Move Note
-              </Button>
+          <h2 id="move-notebook-title" className={classes.sheetTitle}>
+            Move to Notebook
+          </h2>
+
+          <div className={classes.sheetField}>
+            <span className={classes.formLabel} id="notebook-options-label">
+              Notebook
+            </span>
+            <div
+              className={classes.notebookOptions}
+              role="listbox"
+              tabIndex={-1}
+              aria-labelledby="notebook-options-label"
+              onKeyDown={handleOptionsKeydown}
+            >
+              {notebooksFiltered.map(renderOption)}
             </div>
-            <div className={classes.cancel}>
-              <Button variant="contained" size="medium" onClick={cancelHandler}>
-                <CancelIcon sx={{ mr: 1 }} />
-                Cancel
-              </Button>
-            </div>
+          </div>
+
+          <div className={classes.sheetActions}>
+            <button
+              type="button"
+              className={classes.btnCancel}
+              onClick={cancelHandler}
+              aria-label="Cancel button"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={classes.btnMove}
+              disabled={!formIsValid}
+              onClick={submitHandler}
+              aria-label="Move Note button"
+            >
+              Move Note
+            </button>
           </div>
         </div>
-        {error.error_state && (
-          <ErrorAlert>
-            <div>{error.message}</div>
-          </ErrorAlert>
-        )}
-      </DialogContent>
-    </Dialog>
+      </div>
+    </Fragment>
   );
 };
 

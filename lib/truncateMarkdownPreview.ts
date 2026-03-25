@@ -5,7 +5,7 @@
  */
 export function truncateMarkdownPreview(
   content: string,
-  maxBlocks = 10
+  maxBlocks = 10,
 ): string {
   if (!content?.trim()) return "";
 
@@ -72,10 +72,7 @@ export function truncateMarkdownPreview(
     const isList = /^[-*+]\s/.test(trimmed) || /^\d+\.\s/.test(trimmed);
     const isBlockquote = trimmed.startsWith(">");
 
-    if (
-      (isHeading || isList || isBlockquote) &&
-      currentBlock.length > 0
-    ) {
+    if ((isHeading || isList || isBlockquote) && currentBlock.length > 0) {
       blocks.push(currentBlock.join("\n"));
       currentBlock = [];
     }

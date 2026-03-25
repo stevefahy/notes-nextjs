@@ -11,17 +11,17 @@ export const initScrollSync = () => {
 
 const syncScrollEdit = (
   element1: HTMLElement | null,
-  element2: HTMLElement | null
+  element2: HTMLElement | null,
 ) => {
   if (element1 !== null && element2 !== null) {
-    let scroll_end = element2.scrollHeight - element2.clientHeight;
-    let percent =
+    const scroll_end = element2.scrollHeight - element2.clientHeight;
+    const percent =
       (element1.scrollTop / (element1.scrollHeight - element1.clientHeight)) *
       100;
-    let percent_to_pos = scroll_end * (percent / 100);
+    const percent_to_pos = scroll_end * (percent / 100);
 
-    element1.onscroll = (e: any) => {
-      var ignore = ignoreScrollEvents;
+    element1.onscroll = () => {
+      const ignore = ignoreScrollEvents;
       ignoreScrollEvents = false;
       if (ignore) return;
       ignoreScrollEvents = true;

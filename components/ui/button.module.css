@@ -1,0 +1,84 @@
+/* Native buttons — profile + any future uses; theme-aligned (no MUI) */
+.root {
+  font-family: var(--theme-font-sans);
+  font-weight: 600;
+  text-transform: none;
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  border: none;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.root:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sizeSmall {
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  min-height: 36px;
+}
+
+.sizeMedium {
+  font-size: 0.95rem;
+  padding: 10px 22px;
+  min-height: 40px;
+}
+
+.sizeLarge {
+  font-size: 1.1rem;
+  padding: 12px 26px;
+  min-height: 44px;
+}
+
+.containedPrimary {
+  background: var(--theme-green);
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(46, 125, 82, 0.28);
+}
+
+.containedPrimary:hover:not(:disabled) {
+  background: var(--theme-green-accent);
+}
+
+.containedSecondary {
+  background: var(--theme-surface);
+  color: var(--theme-green);
+  border: 2px solid var(--theme-green);
+  box-shadow: none;
+}
+
+.containedSecondary:hover:not(:disabled) {
+  background: var(--theme-lime-bg);
+}
+
+.variantOutlined {
+  background: transparent;
+  color: var(--theme-green);
+  border: 2px solid var(--theme-border-input);
+}
+
+.variantOutlined:hover:not(:disabled) {
+  background: var(--theme-ghost-hover);
+}
+
+.variantText {
+  background: transparent;
+  color: var(--theme-green);
+  border: none;
+  box-shadow: none;
+}
+
+.variantText:hover:not(:disabled) {
+  background: var(--theme-ghost-hover);
+}

@@ -1,39 +1,68 @@
-.toolbar {
-  gap: 10px;
-}
-
 .header {
   z-index: 2;
-  background-color: #4d0000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px 10px;
+  background: var(--theme-surface);
+  border-bottom: 1px solid var(--theme-border);
 }
 
 .header_container {
   display: flex;
   align-items: center;
-  padding-left: 20px;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
 }
 
-.logo_container {
+.logo_row {
   display: flex;
+  gap: 2px;
   align-items: baseline;
 }
 
-.header_toolbar {
-  margin-left: auto;
+.logo_mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--theme-green);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-right: 5px;
 }
 
-.header_title {
-  color: #ffffff;
-  font-family: monospace;
-  font-weight: 700;
-  letter-spacing: 0rem;
-  font-size: 2.4rem;
+.logo_mark img {
+  display: block;
+}
+
+.logo_text {
+  color: var(--theme-green);
+  font-family: var(--theme-font-serif);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-size: 24px;
+  line-height: 1;
   padding: 0;
   margin: 0;
 }
 
-.header_title_logo {
-  margin-right: 5px;
-  width: 20px;
-  height: 20px;
+.header_toolbar {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.editNotesPill {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid var(--theme-border-input);
+  background: var(--theme-lime-bg);
+  color: var(--theme-green-accent);
+  font-family: var(--theme-font-sans);
 }

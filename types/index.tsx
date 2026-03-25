@@ -1,5 +1,6 @@
 import { ObjectId } from "mongodb";
 import { ISODateString } from "next-auth";
+import type { NotebookCoverType } from "../lib/folder-options";
 
 export interface Props {
   children?: React.ReactNode;
@@ -19,13 +20,22 @@ export interface User {
   username: string;
 }
 
+/** Profile API / session details — matches React `IAuthDetails`. */
+export interface IAuthDetails {
+  authStrategy: string;
+  username: string;
+  email: string;
+  __v: number;
+  _id: string;
+}
+
 // Note Editor
 
 export interface NoteEditor {
   visible: boolean;
   splitScreen: boolean;
   loadedText: string;
-  updateViewText: (updatedView: string) => void;
+  updateViewText: (updatedView: string | ((prev: string) => string)) => void;
   passUpdatedViewText: string;
 }
 
@@ -33,14 +43,15 @@ export interface NoteEditorView {
   visible: boolean;
   splitScreen: boolean;
   viewText: string;
-  updatedViewText: (updatedEdit: string) => void;
+  updatedViewText: (updatedEdit: string | ((prev: string) => string)) => void;
 }
 
 export interface ViewNoteMarkdownProps {
   viewText: string;
   scrollView?: number;
   splitScreen?: boolean;
-  updatedViewText: (updatedEdit: string) => void;
+  /** When omitted (e.g. thumbnails), wrapper gets `md-readonly` like Svelte `!onViewTextUpdate`. */
+  updatedViewText?: (updatedEdit: string | ((prev: string) => string)) => void;
   disableLinks: boolean;
 }
 
@@ -111,6 +122,8 @@ export interface Notebook {
   _id: string;
   notebook_name: string;
   notebook_cover: string;
+  /** Populated when listing notebooks (matches React API). */
+  noteCount?: number;
   createdAt?: ISODateString;
   updatedAt?: ISODateString;
 }
@@ -136,6 +149,12 @@ export interface UserNotebook {
 
 export interface NotebooksDB {
   notebooks: UserNotebooks;
+  onNotebooksReload?: () => void | Promise<unknown>;
+}
+
+/** Single notebook row for `NotebookListItem`. */
+export interface NotebookItem {
+  notebook_item: Notebook & { noteCount?: number };
 }
 
 export interface NotebookSaved {
@@ -172,26 +191,29 @@ export interface NotesDBProps {
   notes: Note[];
   onNotesSelected: (selected: SelectedNote) => void;
   onNotesEdit: boolean;
-  onClearNotesEdit: boolean;
 }
 
 export interface NotebookAddEdit {
   method: "edit" | "create";
   notebook?: Notebook;
   onCancel: () => void;
-  addNotebook?: (notebook_name: string, notebook_cover: string) => void;
+  addNotebook?: (
+    notebook_name: string,
+    notebook_cover: NotebookCoverType,
+  ) => void | Promise<boolean>;
   editNotebook?: (
     notebook_id: string,
     notebook_name: string,
-    notebook_cover: string,
-    notebook_updated: string
-  ) => void;
+    notebook_cover: NotebookCoverType,
+    notebook_updated: string,
+  ) => void | Promise<boolean>;
 }
 
 // SelectNotebookForm
 
 export interface SelectNotebookFormProps {
   notebooks: Notebook[];
+  currentNotebookId: string;
   onCancel: () => void;
   moveNotes: (notebook_id: string) => void;
 }
@@ -241,10 +263,11 @@ export interface ErrorMessage {
 // Profile Form
 
 export interface ProfileFormProps {
-  onChangePassword: ({}) => void;
-  onChangeUsername: ({}) => void;
-  username: string;
-  updated: ({}) => boolean;
+  userName: string | undefined;
+  /** Refetch session after username change (NextAuth `update()`). */
+  onSessionRefresh?: () => void | Promise<void>;
+  userEmail?: string;
+  userId?: string;
 }
 
 // Breadcrumb
@@ -256,10 +279,3 @@ export type NotebookType = {
   id: string;
   cover?: string;
 };
-
-// Snackbar
-
-export interface SnackbarProps {
-  status: boolean;
-  message: string;
-}

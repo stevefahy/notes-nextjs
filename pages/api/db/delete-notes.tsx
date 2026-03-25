@@ -65,7 +65,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
                 if (err) {
                   reject(err);
                 }
-              }
+              },
             );
         } catch (error) {
           reject(error);

@@ -1,0 +1,17 @@
+/* Loading placeholder — replaces MUI Skeleton; matches theme surfaces */
+.block {
+  width: 100%;
+  border-radius: 10px;
+  background: var(--theme-border-green);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}

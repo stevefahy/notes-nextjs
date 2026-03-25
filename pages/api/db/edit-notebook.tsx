@@ -70,7 +70,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
             "notebooks.$.notebook_cover": notebookCover,
             "notebooks.$.updatedAt": nbUpdated,
           },
-        }
+        },
       );
       if (result.modifiedCount > 0) {
         const edited_notebook = {

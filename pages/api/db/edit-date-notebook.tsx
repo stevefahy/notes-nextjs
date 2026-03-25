@@ -47,7 +47,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     const editDateNotebook = (
       userID: ObjectId,
       nbID: ObjectId,
-      nbUpated: Date
+      nbUpated: Date,
     ) => {
       return new Promise(async (resolve, reject) => {
         try {
@@ -67,7 +67,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
               $set: {
                 "notebooks.$.updatedAt": nbUpated,
               },
-            }
+            },
           );
           if (result.modifiedCount > 0 || result.matchedCount > 0) {
             const edited_notebook = {

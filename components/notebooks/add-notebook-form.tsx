@@ -1,196 +1,303 @@
-import React, { Fragment, useRef, useState } from "react";
-import dynamic from "next/dynamic";
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import classes from "./add-notebook-form.module.css";
-import { FolderOptions } from "../../lib/folder-options";
+import {
+  FolderOptions,
+  mapLegacyCover,
+  type NotebookCoverType,
+} from "../../lib/folder-options";
 import { NotebookAddEdit } from "../../types";
-import Dialog from "@mui/material/Dialog";
-import DialogContent from "@mui/material/DialogContent";
-import DialogTitle from "@mui/material/DialogTitle";
-import CancelIcon from "@mui/icons-material/Cancel";
+import APPLICATION_CONSTANTS from "../../application_constants/applicationConstants";
+import { dispatchErrorSnack } from "../../lib/dispatchSnack";
+import { useAppDispatch } from "../../store/hooks";
+import ErrorAlert from "../ui/error-alert";
 
-const Button = dynamic(() => import("../ui/button"), {});
-const ErrorAlert = dynamic(() => import("../ui/error-alert"), {});
+const AC = APPLICATION_CONSTANTS;
+
+const swatchClass: Record<NotebookCoverType, string> = {
+  forest: classes.swatchForest,
+  emerald: classes.swatchEmerald,
+  lime: classes.swatchLime,
+  sage: classes.swatchSage,
+};
 
 const AddNotebookForm = (props: NotebookAddEdit) => {
+  const dispatch = useAppDispatch();
   const [error, setError] = useState({ state: false, message: "" });
-  const [selectedCover, setSelectedCover] = useState("");
-  const [selectedName, setSelectedName] = useState("");
-  const [formChanged, setFormChanged] = useState(false);
+  const [selectedCover, setSelectedCover] = useState<NotebookCoverType>(() =>
+    props.method === "edit" && props.notebook
+      ? mapLegacyCover(props.notebook.notebook_cover)
+      : "forest",
+  );
+  const [selectedName, setSelectedName] = useState(() =>
+    props.method === "edit" && props.notebook
+      ? props.notebook.notebook_name
+      : "",
+  );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [closing, setClosing] = useState(false);
 
-  const notebookNameRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
 
-  let notebookName: string = "";
-  let notebookCover: string = "default";
-  let originalName: string = "";
-  let originalCover: string = "";
-
-  if (props.method === "edit" && props.notebook) {
-    originalName = notebookName = props.notebook.notebook_name;
-    originalCover = notebookCover = props.notebook.notebook_cover;
-  } else {
-    originalName = notebookName;
-    originalCover = notebookCover;
-  }
-
-  const checkForm = () => {
-    if (!formChanged) {
-      return true;
-    } else {
-      return false;
+  useEffect(() => {
+    if (props.method === "edit" && props.notebook) {
+      setSelectedCover(mapLegacyCover(props.notebook.notebook_cover));
+      setSelectedName(props.notebook.notebook_name);
     }
-  };
+  }, [props.method, props.notebook]);
 
-  const nameChangeHandler = (name: string) => {
-    setSelectedName((prev) => name);
-    if (selectedCover !== originalCover) {
-      setSelectedCover((prev) => originalCover);
-    }
-    if (name !== originalName || selectedCover !== originalCover) {
-      setFormChanged((prev) => true);
-    } else {
-      setFormChanged((prev) => false);
-    }
-  };
+  useEffect(() => {
+    nameInputRef.current?.focus();
+  }, []);
 
-  const coverChangeHandler = (cover: string) => {
-    setSelectedName((prev) => notebookNameRef.current!.value);
-    setSelectedCover((prev) => cover);
-    if (
-      notebookNameRef.current!.value !== originalName ||
-      (notebookNameRef.current!.value !== "" && cover !== originalCover)
-    ) {
-      setFormChanged((prev) => true);
-    } else {
-      setFormChanged((prev) => false);
-    }
-  };
+  const originalName =
+    props.method === "edit" && props.notebook
+      ? props.notebook.notebook_name
+      : "";
+  const originalCover: NotebookCoverType =
+    props.method === "edit" && props.notebook
+      ? mapLegacyCover(props.notebook.notebook_cover)
+      : "forest";
 
-  const cancelHandler = (event: React.FormEvent) => {
-    event.preventDefault();
-    event.stopPropagation();
+  const isConfirmDisabled = useMemo(() => {
+    if (props.method === "create") {
+      return (
+        selectedName.length < AC.NOTEBOOK_NAME_MIN ||
+        selectedName.length > AC.NOTEBOOK_NAME_MAX
+      );
+    }
+    const hasChange =
+      selectedName !== originalName || selectedCover !== originalCover;
+    const nameValid =
+      selectedName.length >= AC.NOTEBOOK_NAME_MIN &&
+      selectedName.length <= AC.NOTEBOOK_NAME_MAX;
+    return !hasChange || !nameValid;
+  }, [props.method, originalName, originalCover, selectedName, selectedCover]);
+
+  const finishClose = useCallback(() => {
     setError({ state: false, message: "" });
     props.onCancel();
-  };
+  }, [props]);
 
-  const submitHandler = async (event: React.FormEvent) => {
+  const requestClose = useCallback((event?: React.SyntheticEvent) => {
+    event?.preventDefault();
+    event?.stopPropagation();
+    setError({ state: false, message: "" });
+    setClosing(true);
+  }, []);
+
+  const handleSheetAnimationEnd = useCallback(
+    (e: React.AnimationEvent<HTMLDivElement>) => {
+      if (!closing) return;
+      if (!e.animationName.includes("sheetOut")) return;
+      finishClose();
+    },
+    [closing, finishClose],
+  );
+
+  const cancelHandler = (event: React.FormEvent | React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
-    setError({ state: false, message: "" });
-    if (!selectedName || selectedName.length < 3) {
-      setError({
-        state: true,
-        message: "The Notebook name must be at least 3 characters!",
-      });
-      return;
-    }
-    if (selectedName.length > 10) {
-      setError({
-        state: true,
-        message: "The Notebook name must be less than 10 characters!",
-      });
-      return;
-    }
-    if (!selectedCover || selectedCover.length === 0) {
-      setSelectedCover(notebookCover);
-    }
-    if (!selectedCover || selectedCover.length === 0) {
-      setError({ state: true, message: "Please select a cover!" });
-      return;
-    }
+    requestClose(event);
+  };
 
-    const notebook_name = notebookNameRef.current!.value;
-    if (props.method === "edit" && props.notebook && props.editNotebook) {
-      const notebookId = props.notebook._id;
-      let updated = new Date().toISOString();
-      if (props.notebook.updatedAt) {
-        updated = props.notebook.updatedAt;
+  const runSubmit = async () => {
+    if (isConfirmDisabled || isSubmitting || closing) return;
+    setError({ state: false, message: "" });
+
+    if (!selectedName || selectedName.length < AC.NOTEBOOK_NAME_MIN) {
+      setError({
+        state: true,
+        message: AC.NOTEBOOK_NAME_MIN_ERROR,
+      });
+      return;
+    }
+    if (selectedName.length > AC.NOTEBOOK_NAME_MAX) {
+      setError({
+        state: true,
+        message: AC.NOTEBOOK_NAME_MAX_ERROR,
+      });
+      return;
+    }
+    const cover = selectedCover || "forest";
+    setIsSubmitting(true);
+    try {
+      let ok = true;
+      if (props.method === "edit" && props.notebook && props.editNotebook) {
+        const notebookId = props.notebook._id;
+        let updated = new Date().toISOString();
+        if (props.notebook.updatedAt) {
+          updated = props.notebook.updatedAt;
+        }
+        try {
+          const result = await props.editNotebook(
+            notebookId,
+            selectedName,
+            cover,
+            updated,
+          );
+          ok = result === true;
+        } catch (e) {
+          dispatchErrorSnack(dispatch, e, false);
+          ok = false;
+        }
+      } else if (props.method === "create" && props.addNotebook) {
+        try {
+          const result = await props.addNotebook(selectedName, cover);
+          ok = result === true;
+        } catch (e) {
+          dispatchErrorSnack(dispatch, e, false);
+          ok = false;
+        }
+      } else if (props.method === "create") {
+        dispatchErrorSnack(
+          dispatch,
+          new Error(AC.NOTEBOOK_CREATE_ERROR),
+          false,
+        );
+        ok = false;
       }
-      props.editNotebook(notebookId, notebook_name, selectedCover, updated);
-    } else if (props.method === "create" && props.addNotebook) {
-      props.addNotebook(notebook_name, selectedCover);
+      if (ok) {
+        setClosing(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const submitHandler = (event: React.FormEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    void runSubmit();
+  };
+
+  const overlayKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      requestClose(e);
+    }
+  };
+
+  const sheetKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      requestClose(e);
     }
   };
 
   return (
     <Fragment>
-      <Dialog open={true}>
-        <DialogTitle>
-          {props.method === "edit" ? "Edit Notebook" : "Add Notebook"}
-        </DialogTitle>
-        <DialogContent>
-          <form className={classes.form}>
-            <div className={classes.control}>
-              <label htmlFor="new-notebook">Name</label>
+      <div
+        className={classes.sheetOverlay}
+        role="button"
+        tabIndex={0}
+        aria-label="Close dialog"
+        onClick={cancelHandler}
+        onKeyDown={overlayKeyDown}
+      >
+        <div
+          className={`${classes.bottomSheet} ${closing ? classes.bottomSheetExiting : ""}`}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-notebook-title"
+          tabIndex={-1}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={sheetKeyDown}
+          onAnimationEnd={handleSheetAnimationEnd}
+        >
+          <div className={classes.sheetHandle} aria-hidden />
+
+          <h2 id="add-notebook-title" className={classes.sheetTitle}>
+            {props.method === "edit" ? "Edit Notebook" : "New Notebook"}
+          </h2>
+
+          <form onSubmit={submitHandler}>
+            <div className={classes.sheetField}>
+              <label className={classes.formLabel} htmlFor="new-notebook">
+                Name
+              </label>
               <input
+                ref={nameInputRef}
+                className={classes.formInput}
                 type="text"
                 id="new-notebook"
-                ref={notebookNameRef}
-                defaultValue={notebookName}
-                onChange={(e) => {
-                  nameChangeHandler(e.target.value);
-                }}
+                placeholder="e.g. Personal, Work…"
+                value={selectedName}
+                onChange={(e) => setSelectedName(e.target.value)}
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
               />
             </div>
-            <div className={classes.control}>
-              <label htmlFor="new-notebook-cover">Cover</label>
-              <select
-                name="cars"
-                className={classes.select_dialogue}
-                id="new-notebook-cover"
-                defaultValue={notebookCover}
-                onChange={(e) => {
-                  coverChangeHandler(e.target.value);
-                }}
-              >
-                {FolderOptions.map((folder) => {
-                  return (
-                    <option key={folder.value} value={folder.value}>
-                      {folder.name}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </form>
-          <div className={classes.button_row}>
-            <div
-              className={checkForm() ? classes.action_disabled : classes.action}
+
+            <fieldset
+              className={`${classes.sheetField} ${classes.sheetFieldset}`}
             >
-              {props.method === "create" && (
-                <Button
-                  disabled={checkForm()}
-                  variant="contained"
-                  color="secondary"
-                  size="medium"
-                  onClick={submitHandler}
-                >
-                  Add
-                </Button>
-              )}
-              {props.method === "edit" && (
-                <Button
-                  variant="contained"
-                  onClick={submitHandler}
-                  disabled={checkForm()}
-                >
-                  Confirm
-                </Button>
-              )}
-            </div>
-            <div>
-              <Button variant="contained" size="medium" onClick={cancelHandler}>
-                <CancelIcon sx={{ mr: 1 }} />
-                Cancel
-              </Button>
-            </div>
-          </div>
+              <legend className={classes.formLabel}>Cover colour</legend>
+              <div className={classes.swatchRow}>
+                {FolderOptions.map((folder) => (
+                  <button
+                    key={folder.value}
+                    type="button"
+                    className={`${classes.swatch} ${swatchClass[folder.value]} ${
+                      selectedCover === folder.value
+                        ? classes.swatchSelected
+                        : ""
+                    }`}
+                    disabled={isSubmitting}
+                    onClick={() => setSelectedCover(folder.value)}
+                    aria-label={`${folder.viewValue} cover`}
+                    aria-pressed={selectedCover === folder.value}
+                  />
+                ))}
+              </div>
+            </fieldset>
+          </form>
+
           {error.state && (
-            <ErrorAlert>
-              <div>{error.message}</div>
-            </ErrorAlert>
+            <div className={classes.sheetField}>
+              <ErrorAlert>
+                <div>{error.message}</div>
+              </ErrorAlert>
+            </div>
           )}
-        </DialogContent>
-      </Dialog>
+
+          <div className={classes.sheetActions}>
+            <button
+              type="button"
+              className={classes.btnCancel}
+              onClick={cancelHandler}
+              aria-label="Cancel button"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className={classes.btnCreate}
+              disabled={isConfirmDisabled || isSubmitting}
+              onClick={() => void runSubmit()}
+              aria-label={
+                props.method === "edit"
+                  ? "Confirm edit button"
+                  : "Create notebook button"
+              }
+            >
+              {isSubmitting
+                ? props.method === "edit"
+                  ? "Saving…"
+                  : "Creating…"
+                : props.method === "edit"
+                  ? "Confirm"
+                  : "Create"}
+            </button>
+          </div>
+        </div>
+      </div>
     </Fragment>
   );
 };

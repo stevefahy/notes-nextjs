@@ -35,8 +35,9 @@ const useWindowDimensions = (): WindowDimentions => {
             window.innerWidth
             ? document.querySelector("#viewnote_id")!.clientWidth
             : document.querySelector("#viewnote_id")
-            ? window.innerWidth - APPLICATION_CONSTANTS.VIEWNOTE_PADDING_MOBILE
-            : window.innerWidth - APPLICATION_CONSTANTS.VIEWNOTE_PADDING,
+              ? window.innerWidth -
+                APPLICATION_CONSTANTS.VIEWNOTE_PADDING_MOBILE
+              : window.innerWidth - APPLICATION_CONSTANTS.VIEWNOTE_PADDING,
       });
     }
     handleResize();
