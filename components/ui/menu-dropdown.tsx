@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/router";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import type { Session } from "next-auth";
 import APPLICATION_CONSTANTS from "../../application_constants/applicationConstants";
 import { useAppDispatch } from "../../store/hooks";
 import { dispatchErrorSnack } from "../../lib/dispatchSnack";
@@ -11,14 +12,33 @@ import {
 
 const AC = APPLICATION_CONSTANTS;
 
+/** Same as NextAuth’s client fetch — matches the session cookie after login. useSession() often lags here. */
+async function fetchSessionFromApi(): Promise<Session | null> {
+  const res = await fetch("/api/auth/session", { credentials: "same-origin" });
+  const data = (await res.json()) as Session | Record<string, never>;
+  if (!data || typeof data !== "object" || Object.keys(data).length === 0) {
+    return null;
+  }
+  return data as Session;
+}
+
+function hasSignedInUser(s: Session | null | undefined): boolean {
+  return (
+    s?.user != null &&
+    typeof (s.user as { email?: unknown }).email === "string"
+  );
+}
+
 export default function MenuDropdown() {
   const dispatch = useAppDispatch();
-  const { data: session, status } = useSession();
   const router = useRouter();
 
-  const loading = status === "loading";
-  const success = !!session;
-  const details = session?.user;
+  const [navSession, setNavSession] = useState<Session | null | undefined>(
+    undefined,
+  );
+
+  const loading = navSession === undefined;
+  const success = hasSignedInUser(navSession);
 
   const [open, setOpen] = useState(false);
   const [rippleKey, setRippleKey] = useState(0);
@@ -69,7 +89,23 @@ export default function MenuDropdown() {
     return () => document.removeEventListener("click", onDocClick);
   }, [open, close]);
 
-  if (loading && !details) {
+  useEffect(() => {
+    if (!router.isReady) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const s = await fetchSessionFromApi();
+        if (!cancelled) setNavSession(s);
+      } catch {
+        if (!cancelled) setNavSession(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router.isReady, router.asPath]);
+
+  if (loading) {
     return null;
   }
 

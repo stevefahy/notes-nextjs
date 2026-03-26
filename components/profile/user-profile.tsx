@@ -1,21 +1,41 @@
+import { useMemo } from "react";
 import classes from "./user-profile.module.css";
 import ProfileForm from "./profile-form";
 import { LoadingSpinner } from "../ui/loading-screen";
 import { useSession } from "next-auth/react";
+import type { ProfilePageSession } from "../../lib/profile-page-session";
 
-const UserProfile = () => {
-  const { data: session, status, update } = useSession();
+type Props = {
+  /** JSON-safe session from getServerSideProps (see lib/profile-page-session.ts). */
+  session?: ProfilePageSession;
+};
 
-  const success = status === "authenticated";
-  const token = session?.user != null;
-  const details =
-    session?.user != null
-      ? {
-          username: session.user.username,
-          email: session.user.email,
-          _id: String(session.user._id),
-        }
-      : null;
+const UserProfile = ({ session: serverSession }: Props) => {
+  const { data: clientSession, update } = useSession();
+
+  const details = useMemo(() => {
+    const cu = clientSession?.user as
+      | { email?: unknown; username?: unknown; _id?: unknown }
+      | undefined;
+    if (cu && typeof cu.email === "string") {
+      return {
+        username: String(cu.username ?? ""),
+        email: cu.email,
+        _id: String(cu._id ?? ""),
+      };
+    }
+    const su = serverSession?.user;
+    if (su && (su._id || su.email)) {
+      return {
+        username: su.username,
+        email: su.email,
+        _id: su._id,
+      };
+    }
+    return null;
+  }, [clientSession, serverSession]);
+
+  const success = details != null;
 
   const initial = details?.username?.charAt(0).toUpperCase() ?? "";
   const avatarLabel = details?.username
@@ -32,10 +52,7 @@ const UserProfile = () => {
           <LoadingSpinner />
         </div>
       )}
-      {success && !token && (
-        <p className={classes.unauthorized}>Unauthorized</p>
-      )}
-      {success && token && details && (
+      {success && details ? (
         <>
           <div className={classes.profileOuter} aria-label={avatarLabel}>
             {initial}
@@ -55,7 +72,7 @@ const UserProfile = () => {
             }}
           />
         </>
-      )}
+      ) : null}
     </section>
   );
 };

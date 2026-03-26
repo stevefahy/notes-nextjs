@@ -1,15 +1,25 @@
 import { GetServerSideProps, NextPage } from "next";
-import { getSession } from "next-auth/react";
+import type { Session } from "next-auth";
+import { getServerSession } from "next-auth/next";
+import {
+  sessionToProfilePageProps,
+  type ProfilePageSession,
+} from "../lib/profile-page-session";
 import UserProfile from "../components/profile/user-profile";
+import { authOptions } from "./api/auth/[...nextauth]";
 
-const ProfilePage: NextPage = () => {
-  return <UserProfile />;
+const ProfilePage: NextPage<{ session: ProfilePageSession }> = ({
+  session,
+}) => {
+  return <UserProfile session={session} />;
 };
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const session = await getSession({ req: context.req });
+export const getServerSideProps: GetServerSideProps<{
+  session: ProfilePageSession;
+}> = async (context) => {
+  const session = await getServerSession(context.req, context.res, authOptions);
 
-  if (!session) {
+  if (!session?.user) {
     return {
       redirect: {
         destination: "/auth",
@@ -19,7 +29,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   }
 
   return {
-    props: { session },
+    props: {
+      session: sessionToProfilePageProps(session as Session),
+    },
   };
 };
 

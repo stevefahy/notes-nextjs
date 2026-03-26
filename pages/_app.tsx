@@ -6,7 +6,7 @@ import "../styles/note-shell.css";
 import "../styles/login-splash.css";
 import type { AppProps } from "next/app";
 import { SessionProvider } from "next-auth/react";
-import { Session } from "next-auth";
+import type { Session } from "next-auth";
 import { Provider as ReduxProvider } from "react-redux";
 import Head from "next/head";
 import { registerOfflineFallbackServiceWorker } from "../lib/registerOfflineFallbackSw";
@@ -16,12 +16,13 @@ const Layout = dynamic(() => import("../components/layout/layout"), {
   loading: () => null,
 });
 
-interface MyAppProps extends AppProps {
-  session: Session;
-}
+type PagePropsWithOptionalSession = AppProps["pageProps"] & {
+  session?: Session | null;
+};
 
-export default function MyApp(props: MyAppProps) {
-  const { Component, pageProps } = props;
+export default function MyApp({ Component, pageProps }: AppProps) {
+  const pp = pageProps as PagePropsWithOptionalSession;
+  const sessionForProvider = pp.session ?? undefined;
 
   useEffect(() => {
     registerOfflineFallbackServiceWorker();
@@ -29,7 +30,11 @@ export default function MyApp(props: MyAppProps) {
 
   return (
     <ReduxProvider store={store}>
-      <SessionProvider session={props.session}>
+      {/*
+        NextAuth treats session={null} as a resolved "no session" and skips the client
+        /api/auth/session fetch. Only pass a session object or omit (undefined).
+      */}
+      <SessionProvider session={sessionForProvider}>
         <Layout>
           <Head>
             <title>Notes NextJS</title>
@@ -39,6 +44,7 @@ export default function MyApp(props: MyAppProps) {
             />
             <meta name="description" content="Notes app" />
           </Head>
+          {/* Pass full pageProps so pages like /profile keep their `session` prop. */}
           <Component {...pageProps} />
         </Layout>
       </SessionProvider>
