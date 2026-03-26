@@ -251,23 +251,18 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       setIsChanged((prev) => false);
       setAutoSave((prev) => false);
       setOriginalText(viewText);
-      // Match React: after save, switch to view when coming from edit
-      if (!isView) {
-        toggleEditHandlerCallback();
-      }
+      dispatch(
+        snackActions.showSnack({
+          message: "Note Saved",
+          variant: "success",
+        }),
+      );
       return data;
     } catch (error: unknown) {
       showErrorCallback(error, false);
       return;
     }
-  }, [
-    isView,
-    noteId,
-    notebookId,
-    showErrorCallback,
-    toggleEditHandlerCallback,
-    viewText,
-  ]);
+  }, [dispatch, noteId, notebookId, showErrorCallback, viewText]);
 
   useEffect(() => {
     if (autoSave && isChanged && (isView || isChanged) && !isCreate) {
@@ -297,17 +292,6 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       setOriginalText(note_loaded);
     }
   }, [note_loaded]);
-
-  useEffect(() => {
-    if (autoSave) {
-      dispatch(
-        snackActions.showSnack({
-          message: "Note Saved",
-          variant: "success",
-        }),
-      );
-    }
-  }, [autoSave, dispatch]);
 
   const exampleNote = () => {
     if (!isMobile) {
