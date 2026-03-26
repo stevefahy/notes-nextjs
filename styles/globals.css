@@ -254,6 +254,8 @@ span.token {
   margin: var(--size-1) auto;
   width: 100%;
   max-width: 600px;
+  will-change: width;       
+  transform: translateZ(0); 
 }
 
 .viewnote_content ul li a {

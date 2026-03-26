@@ -536,6 +536,8 @@
 
 #view_container .note-pane-scroll img {
   transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 @media (prefers-reduced-motion: reduce) {
