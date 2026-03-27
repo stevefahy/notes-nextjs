@@ -20,12 +20,14 @@ import classes from "./index.module.css";
 import {
   alignNotePanesScroll,
   captureSplitEnterScrollSnap,
+  detachScrollSyncListeners,
   initScrollSync,
   stabilizeSplitEnterScroll,
 } from "../../../../lib/scroll_sync";
 import {
   commitNoteShellTransition,
-  NOTE_SHELL_TRANSITION_CLEANUP_MS,
+  getNoteShellEditViewTransitionCleanupMs,
+  getNoteShellSplitTransitionCleanupMs,
 } from "../../../../lib/noteShellDom";
 import type { NoteShellLayout } from "../../../../lib/noteShellDom";
 import useWindowDimensions from "../../../../lib/useWindowDimension";
@@ -100,6 +102,10 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     typeof captureSplitEnterScrollSnap
   > | null>(null);
   const splitStabilizeCleanupRef = useRef<(() => void) | null>(null);
+  /** Tracks prior `isSplitScreen` inside the scroll effect so we can defer align when exiting split (CSS motion). */
+  const prevIsSplitForScrollRef = useRef(isSplitScreen);
+  /** Prior layout for detecting edit ↔ view transitions (scroll sync off until animation settles). */
+  const prevNoteShellLayoutScrollRef = useRef<NoteShellLayout | null>(null);
 
   const noteShellLayout = isSplitScreen
     ? "split"
@@ -124,6 +130,21 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
   }, [noteShellLayout]);
 
   useLayoutEffect(() => {
+    const prevLayout = prevNoteShellLayoutScrollRef.current;
+    const editViewTransition =
+      prevLayout !== null &&
+      ((prevLayout === "edit" && noteShellLayout === "view") ||
+        (prevLayout === "view" && noteShellLayout === "edit"));
+
+    const wasSplit = prevIsSplitForScrollRef.current;
+    const leavingSplit = wasSplit && !isSplitScreen;
+    const enteringSplit = !wasSplit && isSplitScreen;
+    prevIsSplitForScrollRef.current = isSplitScreen;
+
+    if (leavingSplit || enteringSplit || editViewTransition) {
+      detachScrollSyncListeners();
+    }
+
     if (splitPostAlignTimeoutRef.current !== null) {
       window.clearTimeout(splitPostAlignTimeoutRef.current);
       splitPostAlignTimeoutRef.current = null;
@@ -139,20 +160,47 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     raf1 = requestAnimationFrame(() => {
       raf2 = requestAnimationFrame(() => {
         if (!isSplitScreen) {
+          if (leavingSplit) {
+            const exitSettleMs = getNoteShellSplitTransitionCleanupMs() + 120;
+            splitPostAlignTimeoutRef.current = window.setTimeout(() => {
+              splitPostAlignTimeoutRef.current = null;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  splitEnterFromRef.current = null;
+                  initScrollSync();
+                });
+              });
+            }, exitSettleMs);
+            return;
+          }
+          if (editViewTransition) {
+            const settleMs = getNoteShellEditViewTransitionCleanupMs() + 120;
+            splitPostAlignTimeoutRef.current = window.setTimeout(() => {
+              splitPostAlignTimeoutRef.current = null;
+              requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                  alignNotePanesScroll(noteShellLayout, null);
+                  splitEnterFromRef.current = null;
+                  initScrollSync();
+                });
+              });
+            }, settleMs);
+            return;
+          }
           alignNotePanesScroll(noteShellLayout, null);
           splitEnterFromRef.current = null;
           initScrollSync();
           return;
         }
 
-        const enteringSplit = splitFrom !== null;
-        if (enteringSplit) {
+        const splitEnterWithOrigin = splitFrom !== null;
+        if (splitEnterWithOrigin) {
           splitEnterFromRef.current = null;
         }
 
-        if (enteringSplit && snapCaptured) {
+        if (splitEnterWithOrigin && snapCaptured) {
           splitEnterSnapRef.current = null;
-          const splitStabilizeMs = NOTE_SHELL_TRANSITION_CLEANUP_MS + 120;
+          const splitStabilizeMs = getNoteShellSplitTransitionCleanupMs() + 120;
           splitStabilizeCleanupRef.current = stabilizeSplitEnterScroll(
             snapCaptured,
             splitStabilizeMs,
@@ -164,12 +212,12 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
           return;
         }
 
-        if (enteringSplit) {
+        if (splitEnterWithOrigin) {
           splitPostAlignTimeoutRef.current = window.setTimeout(() => {
             splitPostAlignTimeoutRef.current = null;
             alignNotePanesScroll("split", splitFrom);
             initScrollSync();
-          }, NOTE_SHELL_TRANSITION_CLEANUP_MS);
+          }, getNoteShellSplitTransitionCleanupMs());
           return;
         }
 
@@ -187,6 +235,7 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
       splitStabilizeCleanupRef.current?.();
       splitStabilizeCleanupRef.current = null;
     };
+    prevNoteShellLayoutScrollRef.current = noteShellLayout;
   }, [noteShellLayout, isSplitScreen]);
 
   useEffect(() => {

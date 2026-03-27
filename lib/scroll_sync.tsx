@@ -11,8 +11,6 @@ const SCROLL_BOTTOM_EPS = 2;
 export type SplitEnterScrollSnap = {
   from: "edit" | "view";
   atBottom: boolean;
-  /** Relative position 0..1 in the source pane (full-width layout). */
-  ratio: number;
 };
 
 function notePaneScroll(root: HTMLElement | null): HTMLElement | null {
@@ -81,8 +79,7 @@ export function captureSplitEnterScrollSnap(
   if (!el) return null;
   const max = el.scrollHeight - el.clientHeight;
   const atBottom = max > 0 && el.scrollTop >= max - SCROLL_BOTTOM_EPS;
-  const ratio = max > 0 ? el.scrollTop / max : 0;
-  return { from, atBottom, ratio };
+  return { from, atBottom };
 }
 
 function getEditViewScrollEls(): [HTMLElement, HTMLElement] | null {
@@ -141,17 +138,24 @@ export function stabilizeSplitEnterScroll(
 
   const tid = window.setTimeout(() => {
     const source = snap.from === "view" ? viewScroll : editScroll;
-    const smax = source.scrollHeight - source.clientHeight;
-    source.scrollTop = smax > 0 ? snap.ratio * smax : 0;
-    syncScrollFromTo(
-      source,
-      snap.from === "view" ? editScroll : viewScroll,
-    );
+    const target = snap.from === "view" ? editScroll : viewScroll;
+    // After unlock/reflow, sync from the source pane’s live scrollTop (not a pre-split ratio ×
+    // post-split scrollHeight — that caused a visible jump at animation end).
     requestAnimationFrame(() => {
-      requestAnimationFrame(() => onDone());
+      requestAnimationFrame(() => {
+        syncScrollFromTo(source, target);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => onDone());
+        });
+      });
     });
   }, settleMs);
   return () => window.clearTimeout(tid);
+}
+
+/** Remove scroll-sync listeners without re-attaching. Use while shell layout is animating so sync does not fight reflow. */
+export function detachScrollSyncListeners(): void {
+  removeScrollListeners();
 }
 
 export function initScrollSync(): void {

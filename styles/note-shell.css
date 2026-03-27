@@ -13,6 +13,13 @@
  * view-edit, edit-view, edit-split, view-split, split-edit, split-view) — CSS @keyframes.
  */
 
+:root {
+  /* Scripted motion: edit ↔ view (data-note-transition view-edit / edit-view). */
+  --note-shell-edit-view-animation-duration: 0.38s;
+  /* Scripted motion: split enter & leave (edit-split, view-split, split-edit, split-view). */
+  --note-shell-split-animation-duration: 0.38s;
+}
+
 @keyframes note-shell-view-out-right {
   from {
     transform: translateX(0);
@@ -230,14 +237,14 @@
   .note-pane--view {
   z-index: 1;
   pointer-events: none;
-  animation: note-shell-view-out-right 0.38s ease forwards;
+  animation: note-shell-view-out-right var(--note-shell-edit-view-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="edit"][data-note-transition="view-edit"]
   .note-pane--edit {
   z-index: 2;
   pointer-events: auto;
-  animation: note-shell-edit-in-from-left 0.38s ease forwards;
+  animation: note-shell-edit-in-from-left var(--note-shell-edit-view-animation-duration) ease forwards;
 }
 
 /* Edit → View: edit exits left, view enters from right */
@@ -260,14 +267,14 @@
   .note-pane--edit {
   z-index: 1;
   pointer-events: none;
-  animation: note-shell-edit-out-left 0.38s ease forwards;
+  animation: note-shell-edit-out-left var(--note-shell-edit-view-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="view"][data-note-transition="edit-view"]
   .note-pane--view {
   z-index: 2;
   pointer-events: auto;
-  animation: note-shell-view-in-from-right 0.38s ease forwards;
+  animation: note-shell-view-in-from-right var(--note-shell-edit-view-animation-duration) ease forwards;
 }
 
 /* --- Enter split: edit-split + view-split use @keyframes (see noteShellDom.ts) --- */
@@ -303,7 +310,7 @@
   max-width: none;
   transform: none;
   transition: none;
-  animation: note-shell-edit-split-edit-shrink 0.38s ease forwards;
+  animation: note-shell-edit-split-edit-shrink var(--note-shell-split-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="split"][data-note-transition="edit-split"]
@@ -316,7 +323,7 @@
   flex: none !important;
   z-index: 2;
   transition: none;
-  animation: note-shell-edit-split-view-in 0.38s ease forwards;
+  animation: note-shell-edit-split-view-in var(--note-shell-split-animation-duration) ease forwards;
 }
 
 /* View → Split: edit (50%) slides in from the left; view stays end-aligned while width 100% → 50%. */
@@ -332,7 +339,7 @@
   max-width: none;
   transform: none;
   transition: none;
-  animation: note-shell-view-split-view-shrink 0.38s ease forwards;
+  animation: note-shell-view-split-view-shrink var(--note-shell-split-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="split"][data-note-transition="view-split"]
@@ -345,7 +352,7 @@
   flex: none !important;
   z-index: 2;
   transition: none;
-  animation: note-shell-view-split-edit-in 0.38s ease forwards;
+  animation: note-shell-view-split-edit-in var(--note-shell-split-animation-duration) ease forwards;
 }
 
 /* --- Leave split → single column (layout is already edit/view; force row for the motion) --- */
@@ -378,7 +385,7 @@
   transform: none;
   transition: none;
   pointer-events: auto;
-  animation: note-shell-split-to-edit-expand 0.38s ease forwards;
+  animation: note-shell-split-to-edit-expand var(--note-shell-split-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="edit"][data-note-transition="split-edit"]
@@ -392,7 +399,7 @@
   z-index: 1;
   pointer-events: none;
   transition: none;
-  animation: note-shell-split-to-edit-view-out 0.38s ease forwards;
+  animation: note-shell-split-to-edit-view-out var(--note-shell-split-animation-duration) ease forwards;
 }
 
 /* Split → View: edit slides off left; view widens to full from the right */
@@ -420,7 +427,7 @@
   z-index: 1;
   pointer-events: none;
   transition: none;
-  animation: note-shell-split-to-view-edit-out 0.38s ease forwards;
+  animation: note-shell-split-to-view-edit-out var(--note-shell-split-animation-duration) ease forwards;
 }
 
 #view_container[data-note-layout="view"][data-note-transition="split-view"]
@@ -435,7 +442,7 @@
   transform: none;
   pointer-events: auto;
   transition: none;
-  animation: note-shell-split-to-view-expand 0.38s ease forwards;
+  animation: note-shell-split-to-view-expand var(--note-shell-split-animation-duration) ease forwards;
 }
 
 /* Animated outer shell: no vertical scroll here (globals .view/.edit use overflow-y: scroll) */
