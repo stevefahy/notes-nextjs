@@ -15,8 +15,8 @@
     "@fontsource-variable/material-symbols-outlined": "^5.2.38",
     "@fontsource/material-icons": "^5.2.7",
     "@fontsource/material-icons-outlined": "^5.2.6",
-    "@next/bundle-analyzer": "^16.1.1",
-    "@next/third-parties": "^16.1.1",
+    "@next/bundle-analyzer": "^16.2.1",
+    "@next/third-parties": "^16.2.1",
     "@reduxjs/toolkit": "^2.2.7",
     "bcryptjs": "^2.4.3",
     "cross-env": "^7.0.3",
@@ -37,7 +37,7 @@
     "markdown-it-task-checkbox": "^1.0.6",
     "mongodb": "^5.3.0",
     "morphdom": "^2.7.8",
-    "next": "^16.1.1",
+    "next": "^16.2.1",
     "next-auth": "^4.24.11",
     "prismjs": "^1.30.0",
     "raw-loader": "^4.0.2",
@@ -51,14 +51,14 @@
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-emoji": "^3.0.1",
     "@types/morphdom": "^2.3.0",
-    "@types/node": "18.16.1",
+    "@types/node": "^22.0.0",
     "@types/prismjs": "^1.26.6",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/webpack-env": "^1.18.0",
     "eslint": "^9.0.0",
-    "eslint-config-next": "^16.1.1",
+    "eslint-config-next": "^16.2.1",
     "typescript": "^5.3.3",
-    "vitest": "^2.1.9"
+    "vitest": "^4.1.2"
   }
 }
