@@ -1,22 +1,27 @@
-import { RefObject, useEffect } from "react";
+import { RefObject, useLayoutEffect, useRef } from "react";
 import type { NoteShellLayout } from "./noteShellDom";
 
 /**
  * Horizontal swipe to mirror the footer Edit/View toggle (same `setIsView` → `commitNoteShellTransition`).
- * Pointer Events so touch, pen, and primary mouse work. Disabled when `layout === "split"`.
+ * Disabled when `layout === "split"`.
  *
- * Edit: swipe left → View (panel enters from the right).
- * View: swipe right → Edit (panel enters from the left).
+ * - Mouse / pen: Pointer Events (window-level move/up/cancel).
+ * - Touch: Touch Events on window — many mobile stacks cancel Pointer Events before pointerup;
+ *   touchend still carries the gesture. Pointer path skips pointerType === "touch".
  *
- * Uses window-level move/end listeners (no setPointerCapture) so vertical scrolling inside panes is not hijacked.
+ * styles/note-shell.css + index.module.css: touch-action pan-y on the shell.
  */
+
 export function useNoteShellSwipeNavigation(
   containerRef: RefObject<HTMLElement | null>,
   layout: NoteShellLayout,
   onSwipeToView: () => void,
   onSwipeToEdit: () => void,
 ): void {
-  useEffect(() => {
+  const layoutRef = useRef(layout);
+  layoutRef.current = layout;
+
+  useLayoutEffect(() => {
     if (layout === "split") return;
 
     const el = containerRef.current;
@@ -26,96 +31,220 @@ export function useNoteShellSwipeNavigation(
     const MIN_SWIPE_PX = 56;
     const H_DOMINANCE = 1.25;
 
-    let activePointerId: number | null = null;
-    let startX = 0;
-    let startY = 0;
-    let direction: "h" | "v" | null = null;
-
-    let removeWindowListeners: (() => void) | null = null;
-
-    const reset = (): void => {
-      activePointerId = null;
-      direction = null;
-      removeWindowListeners?.();
-      removeWindowListeners = null;
-    };
-
-    const onPointerMove = (e: PointerEvent): void => {
-      if (e.pointerId !== activePointerId) return;
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-      if (direction !== null) return;
-      if (Math.abs(dx) < ANGLE_LOCK_PX && Math.abs(dy) < ANGLE_LOCK_PX) return;
-      direction = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
-    };
-
-    const onPointerEnd = (e: PointerEvent): void => {
-      if (e.pointerId !== activePointerId) return;
-
-      const dx = e.clientX - startX;
-      const dy = e.clientY - startY;
-
-      let resolved = direction;
+    const trySwipe = (
+      dx: number,
+      dy: number,
+      resolvedDir: "h" | "v" | null,
+    ): void => {
+      let resolved = resolvedDir;
       if (resolved === null) {
         if (Math.abs(dx) < ANGLE_LOCK_PX && Math.abs(dy) < ANGLE_LOCK_PX) {
-          reset();
           return;
         }
         resolved = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
       }
 
-      if (resolved !== "h") {
-        reset();
-        return;
-      }
+      if (resolved !== "h") return;
+      if (Math.abs(dx) < MIN_SWIPE_PX) return;
+      if (Math.abs(dx) < Math.abs(dy) * H_DOMINANCE) return;
 
-      if (Math.abs(dx) < MIN_SWIPE_PX) {
-        reset();
-        return;
-      }
-
-      if (Math.abs(dx) < Math.abs(dy) * H_DOMINANCE) {
-        reset();
-        return;
-      }
-
-      if (layout === "edit" && dx < 0) {
+      const current = layoutRef.current;
+      if (current === "edit" && dx < 0) {
         onSwipeToView();
-      } else if (layout === "view" && dx > 0) {
+      } else if (current === "view" && dx > 0) {
         onSwipeToEdit();
       }
+    };
 
-      reset();
+    /* ---------- Pointer path (mouse / pen only) ---------- */
+
+    let activePointerId: number | null = null;
+    let pStartX = 0;
+    let pStartY = 0;
+    let pDirection: "h" | "v" | null = null;
+    let removePointerWindowListeners: (() => void) | null = null;
+
+    const releaseCaptureIfHeld = (): void => {
+      if (activePointerId === null) return;
+      try {
+        if (el.hasPointerCapture(activePointerId)) {
+          el.releasePointerCapture(activePointerId);
+        }
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const resetPointer = (): void => {
+      releaseCaptureIfHeld();
+      activePointerId = null;
+      pDirection = null;
+      removePointerWindowListeners?.();
+      removePointerWindowListeners = null;
+    };
+
+    const onPointerMove = (e: PointerEvent): void => {
+      if (e.pointerId !== activePointerId) return;
+      const dx = e.clientX - pStartX;
+      const dy = e.clientY - pStartY;
+      if (pDirection !== null) {
+        if (pDirection === "h") {
+          e.preventDefault();
+        }
+        return;
+      }
+      if (Math.abs(dx) < ANGLE_LOCK_PX && Math.abs(dy) < ANGLE_LOCK_PX) return;
+      pDirection = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+      if (pDirection === "h") {
+        try {
+          el.setPointerCapture(activePointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
+    const onPointerEnd = (e: PointerEvent): void => {
+      if (e.pointerId !== activePointerId) return;
+
+      const dx = e.clientX - pStartX;
+      const dy = e.clientY - pStartY;
+
+      trySwipe(dx, dy, pDirection);
+      resetPointer();
     };
 
     const onPointerDown = (e: PointerEvent): void => {
+      if (e.pointerType === "touch") return;
       if (e.pointerType === "mouse" && e.button !== 0) return;
 
-      reset();
+      resetPointer();
 
       activePointerId = e.pointerId;
-      startX = e.clientX;
-      startY = e.clientY;
-      direction = null;
+      pStartX = e.clientX;
+      pStartY = e.clientY;
+      pDirection = null;
 
       const opts = { capture: true };
-      window.addEventListener("pointermove", onPointerMove, opts);
+      const moveOpts = { capture: true, passive: false };
+      window.addEventListener("pointermove", onPointerMove, moveOpts);
       window.addEventListener("pointerup", onPointerEnd, opts);
       window.addEventListener("pointercancel", onPointerEnd, opts);
 
-      removeWindowListeners = (): void => {
-        window.removeEventListener("pointermove", onPointerMove, opts);
+      removePointerWindowListeners = (): void => {
+        window.removeEventListener("pointermove", onPointerMove, moveOpts);
         window.removeEventListener("pointerup", onPointerEnd, opts);
         window.removeEventListener("pointercancel", onPointerEnd, opts);
-        removeWindowListeners = null;
+        removePointerWindowListeners = null;
       };
     };
 
-    el.addEventListener("pointerdown", onPointerDown);
+    const onLostPointerCapture = (e: PointerEvent): void => {
+      if (e.pointerId !== activePointerId) return;
+      resetPointer();
+    };
+
+    /* ---------- Touch path ---------- */
+
+    let touchId: number | null = null;
+    let tStartX = 0;
+    let tStartY = 0;
+    let tDirection: "h" | "v" | null = null;
+    let removeTouchWindowListeners: (() => void) | null = null;
+
+    const resetTouch = (): void => {
+      touchId = null;
+      tDirection = null;
+      removeTouchWindowListeners?.();
+      removeTouchWindowListeners = null;
+    };
+
+    const getTouch = (
+      list: TouchList,
+      id: number,
+    ): Touch | undefined => {
+      for (let i = 0; i < list.length; i++) {
+        const t = list.item(i);
+        if (t?.identifier === id) return t;
+      }
+      return undefined;
+    };
+
+    const onTouchMove = (e: TouchEvent): void => {
+      if (touchId === null) return;
+      const t =
+        getTouch(e.changedTouches, touchId) ?? getTouch(e.touches, touchId);
+      if (!t) return;
+
+      const dx = t.clientX - tStartX;
+      const dy = t.clientY - tStartY;
+
+      if (tDirection !== null) {
+        if (tDirection === "h") {
+          e.preventDefault();
+        }
+        return;
+      }
+      if (Math.abs(dx) < ANGLE_LOCK_PX && Math.abs(dy) < ANGLE_LOCK_PX) return;
+      tDirection = Math.abs(dx) > Math.abs(dy) ? "h" : "v";
+    };
+
+    const onTouchEnd = (e: TouchEvent): void => {
+      if (touchId === null) return;
+      const t = getTouch(e.changedTouches, touchId);
+      if (!t) {
+        resetTouch();
+        return;
+      }
+
+      const dx = t.clientX - tStartX;
+      const dy = t.clientY - tStartY;
+
+      trySwipe(dx, dy, tDirection);
+      resetTouch();
+    };
+
+    const onTouchStart = (e: TouchEvent): void => {
+      if (e.touches.length !== 1) return;
+
+      resetTouch();
+
+      const t0 = e.touches.item(0);
+      if (!t0) return;
+
+      touchId = t0.identifier;
+      tStartX = t0.clientX;
+      tStartY = t0.clientY;
+      tDirection = null;
+
+      const moveOpts = { capture: true, passive: false };
+      const endOpts = { capture: true };
+      window.addEventListener("touchmove", onTouchMove, moveOpts);
+      window.addEventListener("touchend", onTouchEnd, endOpts);
+      window.addEventListener("touchcancel", onTouchEnd, endOpts);
+
+      removeTouchWindowListeners = (): void => {
+        window.removeEventListener("touchmove", onTouchMove, moveOpts);
+        window.removeEventListener("touchend", onTouchEnd, endOpts);
+        window.removeEventListener("touchcancel", onTouchEnd, endOpts);
+        removeTouchWindowListeners = null;
+      };
+    };
+
+    const touchStartOpts: AddEventListenerOptions = {
+      capture: true,
+      passive: true,
+    };
+    el.addEventListener("pointerdown", onPointerDown, { capture: true });
+    el.addEventListener("lostpointercapture", onLostPointerCapture);
+    el.addEventListener("touchstart", onTouchStart, touchStartOpts);
 
     return () => {
-      el.removeEventListener("pointerdown", onPointerDown);
-      reset();
+      el.removeEventListener("pointerdown", onPointerDown, { capture: true });
+      el.removeEventListener("lostpointercapture", onLostPointerCapture);
+      el.removeEventListener("touchstart", onTouchStart, touchStartOpts);
+      resetPointer();
+      resetTouch();
     };
   }, [containerRef, layout, onSwipeToEdit, onSwipeToView]);
 }

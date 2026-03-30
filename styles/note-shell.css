@@ -445,6 +445,20 @@
   animation: note-shell-split-to-view-expand var(--note-shell-split-animation-duration) ease forwards;
 }
 
+/* Touch: the hit target’s touch-action matters, not only #view_container. Default `auto` lets
+ * mobile browsers (Chrome/Android especially) take horizontal movement as native pan/scroll and
+ * emit pointercancel before pointerup — so lib/useNoteShellSwipeNavigation never completes.
+ * pan-y reserves horizontal movement for Pointer Events; vertical pan still scrolls .note-pane-scroll.
+ * Wider horizontal pan remains available on pre (syntax-highlighted code). */
+#view_container,
+#view_container * {
+  touch-action: pan-y;
+}
+
+#view_container pre {
+  touch-action: pan-x pan-y;
+}
+
 /* Animated outer shell: no vertical scroll here (globals .view/.edit use overflow-y: scroll) */
 #view_container .note-pane--edit.edit,
 #view_container .note-pane--view.view {

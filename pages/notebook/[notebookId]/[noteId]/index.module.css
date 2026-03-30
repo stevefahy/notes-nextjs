@@ -1,4 +1,8 @@
 .view_container {
   overflow: auto;
   overflow-y: hidden;
+  /* Avoid a horizontal scrollport on the shell (competes with swipe); panes scroll internally. */
+  overflow-x: hidden;
+  /* Matches styles/note-shell.css #view_container — ensures pan-y if sheet order differs. */
+  touch-action: pan-y;
 }
