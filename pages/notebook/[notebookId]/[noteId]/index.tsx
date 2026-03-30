@@ -30,6 +30,7 @@ import {
   getNoteShellSplitTransitionCleanupMs,
 } from "../../../../lib/noteShellDom";
 import type { NoteShellLayout } from "../../../../lib/noteShellDom";
+import { useNoteShellSwipeNavigation } from "../../../../lib/useNoteShellSwipeNavigation";
 import useWindowDimensions from "../../../../lib/useWindowDimension";
 import APPLICATION_CONSTANTS from "../../../../application_constants/applicationConstants";
 import WELCOME_NOTE from "../../../../public/assets/markdown/welcome_markdown.md";
@@ -112,6 +113,16 @@ const EditNotePage: NextPage<NoteEdit> = (props) => {
     : isView
       ? "view"
       : "edit";
+
+  const swipeGoToView = useCallback(() => setIsView(true), []);
+  const swipeGoToEdit = useCallback(() => setIsView(false), []);
+
+  useNoteShellSwipeNavigation(
+    viewContainerRef,
+    noteShellLayout,
+    swipeGoToView,
+    swipeGoToEdit,
+  );
 
   useLayoutEffect(() => {
     if (!prevIsSplitRef.current && isSplitScreen) {
