@@ -63,7 +63,8 @@ module.exports = (phase, { defaultConfig }) => {
         mongodb_password: encodeURIComponent(process.env.DB_PASSWORD),
         mongodb_url: process.env.DB_URL,
         mongodb_database: process.env.DB_NAME,
-        NEXTAUTH_URL: process.env.NEXTAUTH_URL_DEV,
+        NEXTAUTH_URL:
+          process.env.NEXTAUTH_URL_DEV ?? process.env.NEXTAUTH_URL,
         NEXTSCRIPT_URL: process.env.NEXTSCRIPT_URL_DEV,
       },
     };
@@ -77,7 +78,8 @@ module.exports = (phase, { defaultConfig }) => {
       mongodb_password: encodeURIComponent(process.env.DB_PASSWORD),
       mongodb_url: process.env.DB_URL,
       mongodb_database: process.env.DB_NAME,
-      NEXTAUTH_URL: process.env.NEXTAUTH_URL_PROD,
+      NEXTAUTH_URL:
+        process.env.NEXTAUTH_URL_PROD ?? process.env.NEXTAUTH_URL,
       NEXTSCRIPT_URL: process.env.NEXTSCRIPT_URL_PROD,
     },
   };
