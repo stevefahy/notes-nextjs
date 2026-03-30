@@ -5,6 +5,7 @@ declare global {
     interface ProcessEnv {
       ENV: "test" | "development" | "production";
       NEXTAUTH_URL: string;
+      NEXTAUTH_SECRET: string;
       NEXTSCRIPT_UR: string;
       DB_USERNAME: string;
       DB_PASSWORD: string;

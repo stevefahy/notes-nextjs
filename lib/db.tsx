@@ -22,10 +22,3 @@ export const getDb = async (): Promise<Db> => {
   const client = await clientPromise;
   return client.db(connectionDatabase);
 };
-
-/** @deprecated Use getDb() for connection pooling. Kept for backward compatibility during migration. */
-export const connectToDatabase = async () => {
-  const client = await clientPromise;
-  const db = client.db(connectionDatabase);
-  return { client, db };
-};

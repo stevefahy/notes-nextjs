@@ -1,204 +1,141 @@
 import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Session, getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]";
 import { getDb } from "../../../lib/db";
 import { Notebook } from "../../../types";
+import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
+import {
+  parseObjectIdFromBody,
+  requireSessionUserId,
+  respondMethodNotAllowedPost,
+} from "../../../lib/apiRouteHelpers";
+import { authOptions } from "../auth/[...nextauth]";
+
+const AC = APPLICATION_CONSTANTS;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
-    res.status(500).json({ error: `A POST method is required!` });
+    respondMethodNotAllowedPost(res);
     return;
   }
 
-  if (req.method === "POST") {
-    const data = req.body;
-    const { notes, notebookID, latestUpdatedNote } = data;
+  const userID = await requireSessionUserId(req, res, authOptions);
+  if (!userID) return;
 
-    if (!notes) {
-      res.status(500).json({ error: `The notes are missing!` });
+  const data = req.body;
+  const { notes, notebookID, latestUpdatedNote } = data;
+
+  if (!notes) {
+    res.status(400).json({ error: AC.NOTES_ERROR });
+    return;
+  }
+  if (!notebookID) {
+    res.status(400).json({ error: AC.NOTEBOOK_ERROR });
+    return;
+  }
+  if (!latestUpdatedNote) {
+    res.status(400).json({ error: AC.NOTES_ERROR });
+    return;
+  }
+
+  const nbID = parseObjectIdFromBody(notebookID, res, AC.NOTEBOOK_ERROR);
+  if (!nbID) return;
+
+  if (!Array.isArray(notes) || notes.length === 0) {
+    res.status(400).json({ error: AC.NOTES_ERROR });
+    return;
+  }
+
+  const objectArray: ObjectId[] = [];
+  for (let i = 0; i < notes.length; i++) {
+    const id = notes[i];
+    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+      res.status(400).json({ error: AC.NOTES_ERROR });
       return;
     }
-    if (!notebookID) {
-      res.status(500).json({ error: `The notebook ID is missing!` });
-      return;
-    }
-    if (!latestUpdatedNote) {
-      res.status(500).json({ error: `The latest updated note is missing!` });
-      return;
-    }
+    objectArray.push(new ObjectId(id));
+  }
 
-    let session: Session | null;
-    let userID: ObjectId;
-    try {
-      session = await getServerSession(req, res, authOptions);
-      if (session && session.user) {
-        userID = session.user._id;
-      } else {
-        res.status(500).json({ error: `User is not authenticated!` });
-        return;
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
+  const new_notebook = nbID;
 
-    const uID = new ObjectId(userID);
-    const nbID = new ObjectId(notebookID);
+  let db: Db;
+  try {
+    db = await getDb();
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
+    return;
+  }
 
-    let db: Db;
-
-    let objectArray: ObjectId[] = [];
-    for (let i = 0, length = notes.length; i < length; i++) {
-      objectArray.push(new ObjectId(notes[i]));
-    }
-
-    const new_notebook: ObjectId = new ObjectId(notebookID);
-
-    try {
-      db = await getDb();
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
-
-    const getNotebook = (uID: ObjectId, nbId: ObjectId) => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const result = await db
-            .collection("notebooks")
-            .aggregate([
-              {
-                $match: {
-                  user: userID,
-                },
-              },
-              {
-                $unwind: "$notebooks",
-              },
-              {
-                $match: {
-                  "notebooks._id": nbId,
-                },
-              },
-              {
-                $replaceRoot: {
-                  newRoot: "$notebooks",
-                },
-              },
-            ])
-            .toArray();
-          resolve(result[0]);
-        } catch (error) {
-          reject(`Could not load the notebook! ${error}`);
-        }
-      });
-    };
-
-    const updateNotebook = (uID: ObjectId, nbID: ObjectId, date: Date) => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          const notebookId = new ObjectId(nbID);
-          const result = db
-            .collection("notebooks")
-            .updateOne(
-              {
-                user: uID,
-                notebooks: {
-                  $elemMatch: {
-                    _id: nbID,
-                  },
-                },
-              },
-              {
-                $set: {
-                  "notebooks.$.updatedAt": date,
-                },
-              },
-            )
-            .then(
-              (res) => {
-                if (res === null) {
-                  reject(`Could not update the notebook!`);
-                } else {
-                  resolve({ notes: res });
-                }
-              },
-              (err) => {
-                if (err) {
-                  reject(err);
-                }
-              },
-            );
-        } catch (error) {
-          if (error instanceof Error) {
-            reject(`Could not update the notebook! ${error}`);
-          }
-          return;
-        }
-      });
-    };
-
-    const moveNotes = (notes: ObjectId[]) => {
-      const bulk_array = notes.map((note) => {
-        return {
-          updateOne: {
-            filter: { _id: note, user: userID },
-            update: { $set: { notebook: new_notebook } },
+  const getNotebook = async (uID: ObjectId, nbId: ObjectId) => {
+    const result = await db
+      .collection("notebooks")
+      .aggregate([
+        {
+          $match: {
+            user: uID,
           },
-        };
-      });
-      return new Promise(async (resolve, reject) => {
-        try {
-          const bulk = await db
-            .collection("notes")
-            .bulkWrite(bulk_array)
-            .then(
-              (res) => {
-                if (res === null) {
-                  reject(`Could not move the notes!`);
-                } else if (!res.ok) {
-                  reject(`Could not move the notes!`);
-                } else {
-                  resolve({ notes: res });
-                }
-              },
-              (err) => {
-                if (err) {
-                  reject(err);
-                }
-              },
-            );
-        } catch (error) {
-          reject(error);
-        }
-      });
-    };
+        },
+        {
+          $unwind: "$notebooks",
+        },
+        {
+          $match: {
+            "notebooks._id": nbId,
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: "$notebooks",
+          },
+        },
+      ])
+      .toArray();
+    return result[0] as Notebook | undefined;
+  };
 
-    try {
-      const notebook = (await getNotebook(userID, new_notebook)) as Notebook;
-      const result = await moveNotes(objectArray);
+  const updateNotebook = async (
+    uID: ObjectId,
+    notebookId: ObjectId,
+    date: Date,
+  ) => {
+    return db.collection("notebooks").updateOne(
+      {
+        user: uID,
+        notebooks: {
+          $elemMatch: {
+            _id: notebookId,
+          },
+        },
+      },
+      {
+        $set: {
+          "notebooks.$.updatedAt": date,
+        },
+      },
+    );
+  };
 
-      if (notebook.updatedAt) {
-        if (new Date(notebook.updatedAt) < new Date(latestUpdatedNote)) {
-          try {
-            const notebookResult = await updateNotebook(
-              uID,
-              nbID,
-              new Date(latestUpdatedNote),
-            );
-          } catch (err: any) {
-            throw new Error("Could not update the Notebook!");
-          }
-        }
+  const moveNotes = async (noteIds: ObjectId[]) => {
+    const bulk_array = noteIds.map((note) => ({
+      updateOne: {
+        filter: { _id: note, user: userID },
+        update: { $set: { notebook: new_notebook } },
+      },
+    }));
+    return db.collection("notes").bulkWrite(bulk_array);
+  };
+
+  try {
+    const notebook = await getNotebook(userID, new_notebook);
+    const result = await moveNotes(objectArray);
+
+    if (notebook?.updatedAt) {
+      if (new Date(notebook.updatedAt) < new Date(latestUpdatedNote)) {
+        await updateNotebook(userID, nbID, new Date(latestUpdatedNote));
       }
-      res.status(200).json({ message: "success", result: result });
-    } catch (error) {
-      res.status(500).json({
-        error: `Could not move the notes!
-        ${error}`,
-      });
     }
+    res.status(200).json({ message: "success", result: { notes: result } });
+  } catch {
+    res.status(500).json({ error: AC.NOTES_ERROR });
   }
 };
 

@@ -1,103 +1,65 @@
 import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "../../../lib/db";
-import { Session, getServerSession } from "next-auth";
+import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
+import {
+  parseObjectIdFromBody,
+  requireSessionUserId,
+  respondMethodNotAllowedPost,
+} from "../../../lib/apiRouteHelpers";
 import { authOptions } from "../auth/[...nextauth]";
+
+const AC = APPLICATION_CONSTANTS;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
-    res.status(500).json({ error: `A POST method is required!` });
+    respondMethodNotAllowedPost(res);
     return;
   }
 
-  let session: Session | null;
-  let userID: ObjectId;
+  const userID = await requireSessionUserId(req, res, authOptions);
+  if (!userID) return;
+
+  const data = req.body;
+  const { notebookID } = data;
+  if (!notebookID) {
+    res.status(400).json({ error: AC.NOTEBOOK_ERROR });
+    return;
+  }
+
+  const nID = parseObjectIdFromBody(notebookID, res, AC.NOTEBOOK_ERROR);
+  if (!nID) return;
+  const uID = userID;
+
+  let db: Db;
   try {
-    session = await getServerSession(req, res, authOptions);
-    if (session && session.user) {
-      userID = session.user._id;
-    } else {
-      res.status(500).json({ error: `User is not authenticated!` });
-      return;
-    }
-  } catch (error: any) {
-    res.status(500).json({ error: `${error}` });
+    db = await getDb();
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
     return;
   }
 
-  if (req.method === "POST") {
-    const data = req.body;
-    const { notebookID } = data;
-    if (!notebookID) {
-      res.status(500).json({ error: `The notebook ID is missing!` });
-      return;
-    }
-
-    const nID = new ObjectId(notebookID);
-    const uID = new ObjectId(userID);
-
-    let db: Db;
-
-    try {
-      db = await getDb();
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
-
-    const deleteNote = (notebookID: ObjectId, userID: ObjectId) => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          db.collection("notebooks")
-            .updateOne(
-              {
-                user: userID,
-                notebooks: {
-                  $elemMatch: {
-                    _id: notebookID,
-                  },
-                },
-              },
-              {
-                $pull: {
-                  notebooks: {
-                    _id: notebookID,
-                  },
-                },
-              },
-            )
-            .then(
-              (res) => {
-                if (res === null) {
-                  reject(`Could not delete the note!`);
-                } else {
-                  resolve({ notes: res });
-                }
-              },
-              (err) => {
-                if (err) {
-                  reject(err);
-                }
-              },
-            );
-        } catch (error) {
-          reject(error);
-        }
-      });
-    };
-
-    try {
-      // const userID = session?.user?._id;
-      // const nID = new ObjectId(notebookID);
-      // const uID = new ObjectId(userID);
-      const result = await deleteNote(nID, uID);
-      res.status(200).json({ message: "success", result: result });
-    } catch (error) {
-      res.status(500).json({
-        error: `Could not delete the Notebook!
-        ${error}`,
-      });
-    }
+  try {
+    const result = await db.collection("notebooks").updateOne(
+      {
+        user: uID,
+        notebooks: {
+          $elemMatch: {
+            _id: nID,
+          },
+        },
+      },
+      {
+        $pull: {
+          notebooks: {
+            _id: nID,
+          },
+        },
+      },
+    );
+    res.status(200).json({ message: "success", result: { notes: result } });
+  } catch {
+    res.status(500).json({ error: AC.NOTEBOOK_DELETE_ERROR });
   }
 };
 

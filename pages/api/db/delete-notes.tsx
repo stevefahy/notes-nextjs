@@ -1,87 +1,62 @@
 import { Db, ObjectId } from "mongodb";
 import { NextApiRequest, NextApiResponse } from "next";
-import { Session, getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]";
 import { getDb } from "../../../lib/db";
+import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
+import {
+  requireSessionUserId,
+  respondMethodNotAllowedPost,
+} from "../../../lib/apiRouteHelpers";
+import { authOptions } from "../auth/[...nextauth]";
+
+const AC = APPLICATION_CONSTANTS;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
-    res.status(500).json({ error: `A POST method is required!` });
+    respondMethodNotAllowedPost(res);
     return;
   }
 
-  let session: Session | null;
-  let userID: ObjectId;
+  const userID = await requireSessionUserId(req, res, authOptions);
+  if (!userID) return;
+
+  const data = req.body;
+  const { notes } = data;
+
+  if (!notes) {
+    res.status(400).json({ error: AC.NOTES_ERROR });
+    return;
+  }
+
+  if (!Array.isArray(notes) || notes.length === 0) {
+    res.status(400).json({ error: AC.NOTES_ERROR });
+    return;
+  }
+
+  const notesArray: ObjectId[] = [];
+  for (let i = 0; i < notes.length; i++) {
+    const id = notes[i];
+    if (typeof id !== "string" || !ObjectId.isValid(id)) {
+      res.status(400).json({ error: AC.NOTES_ERROR });
+      return;
+    }
+    notesArray.push(new ObjectId(id));
+  }
+
+  let db: Db;
   try {
-    session = await getServerSession(req, res, authOptions);
-    if (session && session.user) {
-      userID = session.user._id;
-    } else {
-      res.status(500).json({ error: `User is not authenticated!` });
-      return;
-    }
-  } catch (error: any) {
-    res.status(500).json({ error: `${error}` });
+    db = await getDb();
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
     return;
   }
 
-  if (req.method === "POST") {
-    const data = req.body;
-    const { notes } = data;
-
-    if (!notes) {
-      res.status(500).json({ error: `The notes are missing!` });
-      return;
-    }
-
-    let notesArray = [];
-    for (let i = 0, length = notes.length; i < length; i++) {
-      notesArray.push(new ObjectId(notes[i]));
-    }
-
-    let db: Db;
-
-    try {
-      db = await getDb();
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
-
-    const deleteNotes = (notes: ObjectId[]) => {
-      return new Promise(async (resolve, reject) => {
-        try {
-          db.collection("notes")
-            .deleteMany({ _id: { $in: notes } })
-            .then(
-              (res) => {
-                if (res === null) {
-                  reject(`Could not delete the notes!`);
-                } else {
-                  resolve({ notes: res });
-                }
-              },
-              (err) => {
-                if (err) {
-                  reject(err);
-                }
-              },
-            );
-        } catch (error) {
-          reject(error);
-        }
-      });
-    };
-
-    try {
-      const result = await deleteNotes(notesArray);
-      res.status(200).json({ message: "success", result: result });
-    } catch (error) {
-      res.status(500).json({
-        error: `Could not delete the notes!
-        ${error}`,
-      });
-    }
+  try {
+    const result = await db.collection("notes").deleteMany({
+      _id: { $in: notesArray },
+    });
+    res.status(200).json({ message: "success", result: { notes: result } });
+  } catch {
+    res.status(500).json({ error: AC.NOTES_DELETE_ERROR });
   }
 };
 

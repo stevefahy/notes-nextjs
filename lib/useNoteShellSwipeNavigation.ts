@@ -19,7 +19,10 @@ export function useNoteShellSwipeNavigation(
   onSwipeToEdit: () => void,
 ): void {
   const layoutRef = useRef(layout);
-  layoutRef.current = layout;
+
+  useLayoutEffect(() => {
+    layoutRef.current = layout;
+  }, [layout]);
 
   useLayoutEffect(() => {
     if (layout === "split") return;

@@ -1,18 +1,20 @@
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import { ObjectId } from "mongodb";
 import { verifyPassword } from "../../../lib/auth";
 import { getDb } from "../../../lib/db";
 import { User } from "../../../types";
 
 declare module "next-auth" {
-  /**
-   * Returned by `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-   */
   interface Session {
-    // expires: any;
-    // session: {
     user: User;
-    // };
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    email?: string | null;
+    username?: string | null;
   }
 }
 
@@ -20,41 +22,35 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  secret: "LlKq6ZtYbr+hTC073mAmAh9/h2HwMfsFo4hrfCx5mLg=",
+  secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    async session({ session, user, token }) {
-      let db;
-      try {
-        db = await getDb();
-      } catch (error: any) {
-        throw new Error(`Could not connect to the database!
-        ${error}`);
+    async jwt({ token, user }) {
+      if (user && "_id" in user && "username" in user) {
+        const u = user as unknown as {
+          _id: ObjectId;
+          email: string;
+          username: string;
+        };
+        token.sub = u._id.toString();
+        token.email = u.email;
+        token.username = u.username;
       }
-
-      const usersCollection = db.collection("users");
-
-      const userData = await usersCollection.findOne({
-        email: session.user?.email,
-      });
-
-      const newUser = {
-        _id: userData!._id,
-        username: userData?.username,
-        email: userData?.email,
-      };
-
-      session.user = newUser;
+      return token;
+    },
+    async session({ session, token }) {
+      if (token.sub && token.email) {
+        session.user = {
+          _id: new ObjectId(token.sub),
+          email: token.email as string,
+          username: (token.username as string) ?? "",
+        };
+      }
       return session;
     },
   },
   providers: [
     CredentialsProvider({
-      // The name to display on the sign in form (e.g. "Sign in with...")
       name: "Credentials",
-      // The credentials is used to generate a suitable form on the sign in page.
-      // You can specify whatever fields you are expecting to be submitted.
-      // e.g. domain, username, password, 2FA token, etc.
-      // You can pass any HTML attribute to the <input> tag through the object.
       credentials: {
         email: {
           label: "Email",
@@ -63,22 +59,27 @@ export const authOptions: NextAuthOptions = {
         },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials, req) {
-        // Add logic here to look up the user from the credentials supplied
-        // const user = { id: 1, name: "J Smith", email: "jsmith@example.com" };
+      async authorize(credentials) {
         let db;
         try {
           db = await getDb();
-        } catch (error: any) {
-          throw new Error(`Could not connect to the database!
-          ${error}`);
+        } catch (error: unknown) {
+          throw new Error(
+            `Could not connect to the database!
+          ${error}`,
+          );
         }
 
         const usersCollection = db.collection("users");
 
-        const user: any = await usersCollection.findOne({
+        const user = (await usersCollection.findOne({
           email: credentials!.email,
-        });
+        })) as {
+          _id: ObjectId;
+          email: string;
+          username: string;
+          password: string;
+        } | null;
 
         if (!user) {
           throw new Error(`Email not found!
@@ -95,16 +96,12 @@ export const authOptions: NextAuthOptions = {
           Please re-enter your password.`);
         }
 
-        if (user) {
-          // Any object returned will be saved in `user` property of the JWT
-          user.id = user._id;
-          return user;
-        } else {
-          // return null; // Add this line to satisfy the `authorize` typings
-          throw new Error(`Incorrect details..
-          Please check your email and password.`);
-          // You can also Reject this callback with an Error thus the user will be sent to the error page with the error message as a query parameter
-        }
+        return {
+          id: user._id.toString(),
+          _id: user._id,
+          email: user.email,
+          username: user.username,
+        };
       },
     }),
   ],

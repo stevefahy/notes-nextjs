@@ -1,98 +1,93 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { getDb } from "../../../lib/db";
-import { Session, getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]";
 import { Db, ObjectId } from "mongodb";
+import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
+import {
+  parseObjectIdFromBody,
+  requireSessionUserId,
+  respondMethodNotAllowedPost,
+} from "../../../lib/apiRouteHelpers";
+import { authOptions } from "../auth/[...nextauth]";
+
+const AC = APPLICATION_CONSTANTS;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
-  if (req.method === "POST") {
-    const data = req.body;
-    const { notebookID, notebookName, notebookCover, notebookUpdated } = data;
+  if (req.method !== "POST") {
+    respondMethodNotAllowedPost(res);
+    return;
+  }
 
-    if (!notebookID) {
-      res.status(500).json({ error: `The notebook ID is missing!` });
-      return;
-    }
-    if (!notebookName) {
-      res.status(500).json({ error: `The notebook name is missing!` });
-      return;
-    }
-    if (!notebookCover) {
-      res.status(500).json({ error: `The notebook cover is missing!` });
-      return;
-    }
+  const data = req.body;
+  const { notebookID, notebookName, notebookCover, notebookUpdated } = data;
 
-    const notebookId = new ObjectId(notebookID);
+  if (!notebookID) {
+    res.status(400).json({ error: AC.NOTEBOOK_ERROR });
+    return;
+  }
+  if (!notebookName) {
+    res.status(400).json({ error: AC.GENERAL_ERROR });
+    return;
+  }
+  if (!notebookCover) {
+    res.status(400).json({ error: AC.NOTEBOOK_COVER_EMPTY });
+    return;
+  }
 
-    let nbUpdated: Date;
-    if (notebookUpdated === undefined) {
-      nbUpdated = new Date();
+  const notebookId = parseObjectIdFromBody(notebookID, res, AC.NOTEBOOK_ERROR);
+  if (!notebookId) return;
+
+  let nbUpdated: Date;
+  if (notebookUpdated === undefined) {
+    nbUpdated = new Date();
+  } else {
+    nbUpdated = notebookUpdated;
+  }
+
+  const userID = await requireSessionUserId(req, res, authOptions);
+  if (!userID) return;
+
+  let db: Db;
+  try {
+    db = await getDb();
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
+    return;
+  }
+
+  try {
+    const result = await db.collection("notebooks").updateOne(
+      {
+        user: userID,
+        notebooks: {
+          $elemMatch: {
+            _id: notebookId,
+          },
+        },
+      },
+      {
+        $set: {
+          "notebooks.$.notebook_name": notebookName,
+          "notebooks.$.notebook_cover": notebookCover,
+          "notebooks.$.updatedAt": nbUpdated,
+        },
+      },
+    );
+    if (result.modifiedCount > 0) {
+      const edited_notebook = {
+        _id: notebookID,
+        notebook_name: notebookName,
+        notebook_cover: notebookCover,
+      };
+      res.status(200).json({
+        message: "Notebook edited",
+        acknowledged: true,
+        edited: edited_notebook,
+      });
     } else {
-      nbUpdated = notebookUpdated;
+      res.status(400).json({ error: AC.GENERAL_ERROR });
     }
-
-    let session: Session | null;
-    let userID: ObjectId;
-    try {
-      session = await getServerSession(req, res, authOptions);
-      if (session && session.user) {
-        userID = session.user._id;
-      } else {
-        res.status(500).json({ error: `User is not authenticated!` });
-        return;
-      }
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
-
-    let db: Db;
-    try {
-      db = await getDb();
-    } catch (error: any) {
-      res.status(500).json({ error: `${error}` });
-      return;
-    }
-
-    try {
-      const result = await db.collection("notebooks").updateOne(
-        {
-          user: userID,
-          notebooks: {
-            $elemMatch: {
-              _id: notebookId,
-            },
-          },
-        },
-        {
-          $set: {
-            "notebooks.$.notebook_name": notebookName,
-            "notebooks.$.notebook_cover": notebookCover,
-            "notebooks.$.updatedAt": nbUpdated,
-          },
-        },
-      );
-      if (result.modifiedCount > 0) {
-        const edited_notebook = {
-          _id: notebookID,
-          notebook_name: notebookName,
-          notebook_cover: notebookCover,
-        };
-        res.status(200).json({
-          message: "Notebook edited",
-          acknowledged: true,
-          edited: edited_notebook,
-        });
-      } else {
-        throw new Error("Failed to edit Notebook!");
-      }
-    } catch (error) {
-      if (error instanceof Error) {
-        res
-          .status(400)
-          .json({ error: error.message || "An unknown error occured!" });
-      }
-    }
+  } catch {
+    res.status(500).json({ error: AC.GENERAL_ERROR });
   }
 };
 

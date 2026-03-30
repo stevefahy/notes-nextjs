@@ -6,10 +6,6 @@ export interface Props {
   children?: React.ReactNode;
 }
 
-export interface PropsMUI {
-  children?: React.ReactNode;
-}
-
 // User
 
 export interface User {

@@ -1,34 +1,39 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { hashPassword } from "../../../lib/auth";
 import { getDb } from "../../../lib/db";
-import { MongoClient, Db, ObjectId } from "mongodb";
+import { Db, ObjectId } from "mongodb";
 import APPLICATION_CONSTANTS from "../../../application_constants/applicationConstants";
 import WELCOME_NOTE from "./../../../public/assets/markdown/welcome_markdown.md";
+import { respondMethodNotAllowedPost } from "../../../lib/apiRouteHelpers";
+
+const AC = APPLICATION_CONSTANTS;
 
 const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method !== "POST") {
+    respondMethodNotAllowedPost(res);
     return;
   }
+
   const data = req.body;
   const { email, password, username } = data;
 
   if (!email || !email.includes("@")) {
     res.status(422).json({
-      error: APPLICATION_CONSTANTS.SIGNUP_INVALID_EMAIL,
+      error: AC.SIGNUP_INVALID_EMAIL,
     });
     return;
   }
 
   if (!password || password.trim().length < 7) {
     res.status(422).json({
-      error: APPLICATION_CONSTANTS.SIGNUP_INVALID_PASSWORD,
+      error: AC.SIGNUP_INVALID_PASSWORD,
     });
     return;
   }
 
   if (!username || username.trim().length < 2) {
     res.status(422).json({
-      error: APPLICATION_CONSTANTS.SIGNUP_INVALID_USERNAME,
+      error: AC.SIGNUP_INVALID_USERNAME,
     });
     return;
   }
@@ -36,24 +41,23 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
   let db: Db;
   try {
     db = await getDb();
-  } catch (error: any) {
-    res.status(500).json({ error: `${error}` });
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
     return;
   }
 
   let existingUser = null;
   try {
     existingUser = await db.collection("users").findOne({ email: email });
-  } catch (error: any) {
-    res.status(500).json({ error: `${error}` });
+  } catch {
+    res.status(500).json({ error: AC.ERROR_SERVER });
     return;
   }
 
-  // email already exists
   if (existingUser !== null) {
     res
       .status(422)
-      .json({ error: APPLICATION_CONSTANTS.SIGNUP_EMAIL_REGISTERED });
+      .json({ error: AC.SIGNUP_EMAIL_REGISTERED });
     return;
   }
 
@@ -66,14 +70,14 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
       password: hashedPassword,
       username,
     });
-  } catch (error: any) {
-    res.status(422).json({ error: APPLICATION_CONSTANTS.CREATE_USER_ERROR });
+  } catch {
+    res.status(422).json({ error: AC.CREATE_USER_ERROR });
     return;
   }
 
   if (!user_result.acknowledged) {
     res.status(422).json({
-      error: APPLICATION_CONSTANTS.GENERAL_ERROR,
+      error: AC.GENERAL_ERROR,
     });
     return;
   }
@@ -84,7 +88,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     userID = user_result.insertedId;
     notebookID = new ObjectId();
 
-    const initialnotebook = await db.collection("notebooks").insertOne({
+    await db.collection("notebooks").insertOne({
       user: userID,
       notebooks: [
         {
@@ -94,45 +98,31 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         },
       ],
     });
-  } catch (error: any) {
+  } catch {
     res
       .status(422)
-      .json({ error: APPLICATION_CONSTANTS.CREATE_NOTEBOOK_ERROR });
+      .json({ error: AC.CREATE_NOTEBOOK_ERROR });
     return;
   }
 
   try {
-    const welcome_note = await db
-      .collection("notes")
-      .insertOne({
-        notebook: notebookID,
-        user: userID,
-        note: WELCOME_NOTE,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .then(
-        (result) => {
-          if (result === null) {
-            res.status(422).json({ error: `Could not create the note!` });
-            return;
-          } else {
-            res.status(201).json({
-              message: "Created welcome note!",
-              data: { notebookID: notebookID, noteID: result.insertedId },
-            });
-          }
-        },
-        (err) => {
-          if (err) {
-            res.status(422).json({ error: `Could not create the note!` });
-            return;
-          }
-        },
-      );
-  } catch (error: any) {
-    res.status(422).json({ error: APPLICATION_CONSTANTS.CREATE_NOTE_ERROR });
-    return;
+    const welcomeResult = await db.collection("notes").insertOne({
+      notebook: notebookID,
+      user: userID,
+      note: WELCOME_NOTE,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+    if (!welcomeResult.acknowledged) {
+      res.status(422).json({ error: AC.CREATE_NOTE_ERROR });
+      return;
+    }
+    res.status(201).json({
+      message: "Created welcome note!",
+      data: { notebookID: notebookID, noteID: welcomeResult.insertedId },
+    });
+  } catch {
+    res.status(422).json({ error: AC.CREATE_NOTE_ERROR });
   }
 };
 
