@@ -379,7 +379,7 @@
 #view_container[data-note-layout="edit"][data-note-transition="split-edit"]
   .note-pane--edit {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   flex: 0 0 auto !important;
   max-width: none;
   transform: none;
@@ -391,12 +391,11 @@
 #view_container[data-note-layout="edit"][data-note-transition="split-edit"]
   .note-pane--view {
   position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 50%;
+  /* Override single-column `inset:0` — left+right+width:50% over-constrains and can use full width. */
+  inset: 0 0 0 50%;
+  width: auto;
   flex: none !important;
-  z-index: 1;
+  z-index: 2;
   pointer-events: none;
   transition: none;
   animation: note-shell-split-to-edit-view-out var(--note-shell-split-animation-duration) ease forwards;
